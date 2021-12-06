@@ -523,7 +523,7 @@ func TestMsgJsonSignBytes(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			bz := spec.src.GetSignBytes()
+			bz := spec.src.GetSigners()
 			assert.JSONEq(t, spec.exp, string(bz), "raw: %s", string(bz))
 		})
 	}
