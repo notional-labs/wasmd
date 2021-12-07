@@ -10,21 +10,21 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-var _ codec.Codec = (*ProtoCodec)(nil)
+var _ codec.Marshaler = (*ProtoCodec)(nil)
 
 // ProtoCodec that omits empty values.
-// This Codec can be used globally when setting up the client context or individually
-// for each command via `clientCtx.WithJSONCodec(myCodec)`.
+// This Marshaler can be used globally when setting up the client context or individually
+// for each command via `clientCtx.WithJSONMarshaler(myMarshaler)`.
 type ProtoCodec struct {
-	codec.Codec
+	codec.Marshaler
 	interfaceRegistry types.InterfaceRegistry
 }
 
-func NewProtoCodec(codec codec.Codec, registry types.InterfaceRegistry) *ProtoCodec {
-	return &ProtoCodec{Codec: codec, interfaceRegistry: registry}
+func NewProtoCodec(marshaler codec.Marshaler, registry types.InterfaceRegistry) *ProtoCodec {
+	return &ProtoCodec{Marshaler: marshaler, interfaceRegistry: registry}
 }
 
-// MarshalJSON implements JSONCodec.MarshalJSON method,
+// MarshalJSON implements JSONMarshaler.MarshalJSON method,
 // it marshals to JSON using proto codec.
 func (pc *ProtoCodec) MarshalJSON(o proto.Message) ([]byte, error) {
 	m, ok := o.(codec.ProtoMarshaler)
@@ -34,7 +34,7 @@ func (pc *ProtoCodec) MarshalJSON(o proto.Message) ([]byte, error) {
 	return ProtoMarshalJSON(m, pc.interfaceRegistry)
 }
 
-// MustMarshalJSON implements JSONCodec.MustMarshalJSON method,
+// MustMarshalJSON implements JSONMarshaler.MustMarshalJSON method,
 // it executes MarshalJSON except it panics upon failure.
 func (pc *ProtoCodec) MustMarshalJSON(o proto.Message) []byte {
 	bz, err := pc.MarshalJSON(o)

@@ -15,7 +15,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	address "github.com/cosmos/cosmos-sdk/types/address"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -560,9 +559,9 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
 	require.NoError(t, err)
 	var (
-		myAddress          sdk.AccAddress = bytes.Repeat([]byte{1}, address.Len)
-		verifierAddress    sdk.AccAddress = bytes.Repeat([]byte{2}, address.Len)
-		beneficiaryAddress sdk.AccAddress = bytes.Repeat([]byte{3}, address.Len)
+		myAddress          sdk.AccAddress = bytes.Repeat([]byte{1}, sdk.AddrLen)
+		verifierAddress    sdk.AccAddress = bytes.Repeat([]byte{2}, sdk.AddrLen)
+		beneficiaryAddress sdk.AccAddress = bytes.Repeat([]byte{3}, sdk.AddrLen)
 	)
 	const denom = "stake"
 	importState := types.GenesisState{
