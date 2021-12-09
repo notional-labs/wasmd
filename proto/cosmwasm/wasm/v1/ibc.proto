@@ -20,9 +20,8 @@ message MsgIBCSend {
   uint64 timeout_timestamp = 5
       [ (gogoproto.moretags) = "yaml:\"timeout_timestamp\"" ];
 
-  // Data is the payload to transfer. We must not make assumption what format or
-  // content is in here.
-  bytes data = 6;
+  // data is the payload to transfer
+  bytes data = 6 [ (gogoproto.casttype) = "encoding/json.RawMessage" ];
 }
 
 // MsgIBCCloseChannel port and channel need to be owned by the contract

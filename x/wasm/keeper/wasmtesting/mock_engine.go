@@ -3,7 +3,6 @@ package wasmtesting
 import (
 	"bytes"
 	"crypto/sha256"
-
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"

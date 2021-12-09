@@ -1,14 +1,15 @@
 package keeper
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 
@@ -33,7 +34,7 @@ func TestEncoding(t *testing.T) {
 	valAddr2 := make(sdk.ValAddress, 32)
 	valAddr2[1] = 123
 
-	jsonMsg := types.RawContractMessage(`{"foo": 123}`)
+	jsonMsg := json.RawMessage(`{"foo": 123}`)
 
 	bankMsg := &banktypes.MsgSend{
 		FromAddress: addr2.String(),

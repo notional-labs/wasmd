@@ -14,8 +14,8 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -390,7 +390,7 @@ type startGame struct {
 	MaxValue uint64 `json:"max_value,omitempty"`
 }
 
-func (g startGame) GetBytes() wasmtypes.RawContractMessage {
+func (g startGame) GetBytes() json.RawMessage {
 	b, err := json.Marshal(g)
 	if err != nil {
 		panic(err)

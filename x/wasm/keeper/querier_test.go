@@ -3,15 +3,10 @@ package keeper
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"io/ioutil"
-	"testing"
-	"time"
-
-	cosmwasm "github.com/CosmWasm/wasmvm"
+	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
+	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -20,9 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/log"
-
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"io/ioutil"
+	"testing"
+	"time"
 )
 
 func TestQueryAllContractState(t *testing.T) {
@@ -124,7 +119,7 @@ func TestQuerySmartContractState(t *testing.T) {
 		srcAddr  sdk.AccAddress
 		srcQuery *types.QuerySmartContractStateRequest
 		expResp  string
-		expErr   error
+		expErr   *sdkErrors.Error
 	}{
 		"query smart": {
 			srcQuery: &types.QuerySmartContractStateRequest{Address: contractAddr, QueryData: []byte(`{"verifier":{}}`)},
@@ -136,7 +131,7 @@ func TestQuerySmartContractState(t *testing.T) {
 		},
 		"query smart with invalid json": {
 			srcQuery: &types.QuerySmartContractStateRequest{Address: contractAddr, QueryData: []byte(`not a json string`)},
-			expErr:   status.Error(codes.InvalidArgument, "invalid query data"),
+			expErr:   types.ErrQueryFailed,
 		},
 		"query smart with unknown address": {
 			srcQuery: &types.QuerySmartContractStateRequest{Address: RandomBech32AccountAddress(t), QueryData: []byte(`{"verifier":{}}`)},
@@ -146,7 +141,7 @@ func TestQuerySmartContractState(t *testing.T) {
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
 			got, err := q.SmartContractState(sdk.WrapSDKContext(ctx), spec.srcQuery)
-			require.True(t, errors.Is(err, spec.expErr), "but got %+v", err)
+			require.True(t, spec.expErr.Is(err), "but got %+v", err)
 			if spec.expErr != nil {
 				return
 			}
@@ -191,8 +186,7 @@ func TestQuerySmartContractPanics(t *testing.T) {
 			// when
 			q := Querier(keepers.WasmKeeper)
 			got, err := q.SmartContractState(sdk.WrapSDKContext(ctx), &types.QuerySmartContractStateRequest{
-				Address:   contractAddr.String(),
-				QueryData: types.RawContractMessage("{}"),
+				Address: contractAddr.String(),
 			})
 			require.True(t, spec.expErr.Is(err), "got error: %+v", err)
 			assert.Nil(t, got)

@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -171,9 +172,10 @@ func (p InstantiateContractProposal) ValidateBasic() error {
 			return err
 		}
 	}
-	if err := p.Msg.ValidateBasic(); err != nil {
-		return sdkerrors.Wrap(err, "payload msg")
+	if !json.Valid(p.Msg) {
+		return sdkerrors.Wrap(ErrInvalid, "init msg json")
 	}
+
 	return nil
 }
 
@@ -240,8 +242,8 @@ func (p MigrateContractProposal) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(p.RunAs); err != nil {
 		return sdkerrors.Wrap(err, "run as")
 	}
-	if err := p.Msg.ValidateBasic(); err != nil {
-		return sdkerrors.Wrap(err, "payload msg")
+	if !json.Valid(p.Msg) {
+		return sdkerrors.Wrap(ErrInvalid, "migrate msg json")
 	}
 	return nil
 }

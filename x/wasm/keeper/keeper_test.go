@@ -321,7 +321,7 @@ func TestInstantiate(t *testing.T) {
 		Operation: types.ContractCodeHistoryOperationTypeInit,
 		CodeID:    codeID,
 		Updated:   types.NewAbsoluteTxPosition(ctx),
-		Msg:       initMsgBz,
+		Msg:       json.RawMessage(initMsgBz),
 	}}
 	assert.Equal(t, exp, keepers.WasmKeeper.GetContractHistory(ctx, gotContractAddr))
 

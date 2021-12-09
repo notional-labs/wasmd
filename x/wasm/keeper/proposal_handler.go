@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/hex"
-
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"

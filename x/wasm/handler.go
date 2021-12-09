@@ -2,7 +2,6 @@ package wasm
 
 import (
 	"fmt"
-
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/gogo/protobuf/proto"
