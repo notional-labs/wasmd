@@ -224,14 +224,16 @@ var ( // store keys
 )
 
 // IBCPacketReceive receives the hit and serves a response hit via `wasmvmtypes.IBCPacket`
-func (p player) IBCPacketReceive(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCPacketReceiveMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBCReceiveResponse, uint64, error) {
+func (p player) IBCPacketReceive(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCPacketReceiveMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBCReceiveResult, uint64, error) {
 	// parse received data and store
 	packet := msg.Packet
 	var receivedBall hit
 	if err := json.Unmarshal(packet.Data, &receivedBall); err != nil {
-		return &wasmvmtypes.IBCReceiveResponse{
-			Acknowledgement: hitAcknowledgement{Error: err.Error()}.GetBytes(),
-			// no hit msg, we stop the game
+		return &wasmvmtypes.IBCReceiveResult{
+			Ok: &wasmvmtypes.IBCReceiveResponse{
+				Acknowledgement: hitAcknowledgement{Error: err.Error()}.GetBytes(),
+				// no hit msg, we stop the game
+			},
 		}, 0, nil
 	}
 	p.incrementCounter(receivedBallsCountKey, store)
@@ -241,8 +243,10 @@ func (p player) IBCPacketReceive(codeID wasmvm.Checksum, env wasmvmtypes.Env, ms
 
 	if maxVal := store.Get(maxValueKey); maxVal != nil && otherCount > sdk.BigEndianToUint64(maxVal) {
 		errMsg := fmt.Sprintf("max value exceeded: %d got %d", sdk.BigEndianToUint64(maxVal), otherCount)
-		return &wasmvmtypes.IBCReceiveResponse{
-			Acknowledgement: receivedBall.BuildError(errMsg).GetBytes(),
+		return &wasmvmtypes.IBCReceiveResult{
+			Ok: &wasmvmtypes.IBCReceiveResponse{
+				Acknowledgement: receivedBall.BuildError(errMsg).GetBytes(),
+			},
 		}, 0, nil
 	}
 
@@ -258,10 +262,11 @@ func (p player) IBCPacketReceive(codeID wasmvm.Checksum, env wasmvmtypes.Env, ms
 	}}
 	p.incrementCounter(sentBallsCountKey, store)
 	p.t.Logf("[%s] received %d, returning %d: %v\n", p.actor, otherCount, nextValue, newHit)
-
-	return &wasmvmtypes.IBCReceiveResponse{
-		Acknowledgement: receivedBall.BuildAck().GetBytes(),
-		Messages:        []wasmvmtypes.SubMsg{{Msg: wasmvmtypes.CosmosMsg{IBC: respHit}, ReplyOn: wasmvmtypes.ReplyNever}},
+	return &wasmvmtypes.IBCReceiveResult{
+		Ok: &wasmvmtypes.IBCReceiveResponse{
+			Acknowledgement: receivedBall.BuildAck().GetBytes(),
+			Messages:        []wasmvmtypes.SubMsg{{Msg: wasmvmtypes.CosmosMsg{IBC: respHit}, ReplyOn: wasmvmtypes.ReplyNever}},
+		},
 	}, 0, nil
 }
 
