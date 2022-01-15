@@ -7,10 +7,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+	porttypes "github.com/cosmos/ibc-go/v3/modules/core/05-port/types"
+	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	"github.com/cosmos/ibc-go/v3/modules/core/exported"
 
 	types "github.com/CosmWasm/wasmd/x/wasm/types"
 )
@@ -86,16 +86,16 @@ func (i IBCHandler) OnChanOpenTry(
 	portID, channelID string,
 	chanCap *capabilitytypes.Capability,
 	counterParty channeltypes.Counterparty,
-	version, counterpartyVersion string,
-) error {
+	counterpartyVersion string,
+) (string, error) {
 	// ensure port, version, capability
 	if err := ValidateChannelParams(channelID); err != nil {
-		return err
+		return "", err
 	}
 
 	contractAddr, err := ContractFromPortID(portID)
 	if err != nil {
-		return sdkerrors.Wrapf(err, "contract port id")
+		return "", sdkerrors.Wrapf(err, "contract port id")
 	}
 
 	msg := wasmvmtypes.IBCChannelOpenMsg{
@@ -104,7 +104,7 @@ func (i IBCHandler) OnChanOpenTry(
 				Endpoint:             wasmvmtypes.IBCEndpoint{PortID: portID, ChannelID: channelID},
 				CounterpartyEndpoint: wasmvmtypes.IBCEndpoint{PortID: counterParty.PortId, ChannelID: counterParty.ChannelId},
 				Order:                order.String(),
-				Version:              version,
+				Version:              types.Version,
 				ConnectionID:         connectionHops[0], // At the moment this list must be of length 1. In the future multi-hop channels may be supported.
 			},
 			CounterpartyVersion: counterpartyVersion,
@@ -113,7 +113,7 @@ func (i IBCHandler) OnChanOpenTry(
 
 	err = i.keeper.OnOpenChannel(ctx, contractAddr, msg)
 	if err != nil {
-		return err
+		return "", err
 	}
 	// Module may have already claimed capability in OnChanOpenInit in the case of crossing hellos
 	// (ie chainA and chainB both call ChanOpenInit before one of them calls ChanOpenTry)
@@ -122,10 +122,10 @@ func (i IBCHandler) OnChanOpenTry(
 	if !i.keeper.AuthenticateCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)) {
 		// Only claim channel capability passed back by IBC module if we do not already own it
 		if err := i.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-			return sdkerrors.Wrap(err, "claim capability")
+			return "", sdkerrors.Wrap(err, "claim capability")
 		}
 	}
-	return nil
+	return types.Version, nil
 }
 
 // OnChanOpenAck implements the IBCModule interface
@@ -265,7 +265,6 @@ func (i IBCHandler) OnAcknowledgementPacket(
 	}
 
 	return nil
-
 }
 
 // OnTimeoutPacket implements the IBCModule interface
