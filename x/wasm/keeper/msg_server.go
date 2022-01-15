@@ -19,6 +19,20 @@ func NewMsgServerImpl(k types.ContractOpsKeeper) types.MsgServer {
 	return &msgServer{keeper: k}
 }
 
+func (m msgServer) CreateInterchainAccountForSmartContract(goCtx context.Context, msg *types.MsgCreateInterchainAccountForSmartContract) (*types.MsgCreateInterchainAccountForSmartContractResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	remoteContractAddress, err := m.keeper.NewInterchainAccountForContract(ctx, msg.ContractAddress, msg.ConnectionId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.MsgCreateInterchainAccountForSmartContractResponse{
+		RemoteAddress: remoteContractAddress,
+	}, nil
+
+}
+
 func (m msgServer) StoreCode(goCtx context.Context, msg *types.MsgStoreCode) (*types.MsgStoreCodeResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)

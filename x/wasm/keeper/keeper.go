@@ -19,7 +19,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkaddress "github.com/cosmos/cosmos-sdk/types/address"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
+
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/CosmWasm/wasmd/x/wasm/types"
@@ -69,6 +72,9 @@ type Keeper struct {
 	wasmVMQueryHandler    WasmVMQueryHandler
 	wasmVMResponseHandler WasmVMResponseHandler
 	messenger             Messenger
+	connectionKeeper      types.ConnectionKeeper
+	icaControllerKeeper   types.ICAControllerKeeper
+
 	// queryGasLimit is the max wasmvm gas that can be spent on executing a query with a contract
 	queryGasLimit uint64
 	paramSpace    paramtypes.Subspace
@@ -675,6 +681,40 @@ func (k Keeper) IterateContractInfo(ctx sdk.Context, cb func(sdk.AccAddress, typ
 			break
 		}
 	}
+}
+
+func (k Keeper) newInterchainAccountForContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error) {
+
+	connectionEnd, found := k.connectionKeeper.GetConnection(ctx, connectionID)
+	if !found {
+		return "", nil
+	}
+	counterpartyConnectionID := connectionEnd.Counterparty.ConnectionId
+
+	err := k.icaControllerKeeper.InitInterchainAccount(ctx, connectionID, counterpartyConnectionID, contractAddress)
+	if err != nil {
+		return "", err
+	}
+
+	portID, err := icatypes.GeneratePortID(contractAddress, connectionID, counterpartyConnectionID)
+	if err != nil {
+		return "", err
+	}
+
+	contractAccAddr, err := sdk.AccAddressFromBech32(contractAddress)
+	if err != nil {
+		return "", err
+	}
+
+	prefixStoreKey := types.GetContractICAPortStorePrefix(contractAccAddr)
+	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
+	prefixStore.Set([]byte(connectionID), []byte(portID))
+
+	remoteAcc := icatypes.GenerateAddress(k.accountKeeper.GetModuleAddress(icatypes.ModuleName), portID)
+
+	remoteContractAddress := icatypes.NewInterchainAccount(authtypes.NewBaseAccountWithAddress(remoteAcc), portID)
+
+	return remoteContractAddress.Address, nil
 }
 
 func (k Keeper) GetContractState(ctx sdk.Context, contractAddress sdk.AccAddress) sdk.Iterator {

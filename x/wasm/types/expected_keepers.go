@@ -45,6 +45,8 @@ type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
 	// Set an account in the store.
 	SetAccount(ctx sdk.Context, acc authtypes.AccountI)
+	// Get module address
+	GetModuleAddress(name string) sdk.AccAddress
 }
 
 // DistributionKeeper defines a subset of methods implemented by the cosmos-sdk distribution keeper
@@ -93,6 +95,7 @@ type ConnectionKeeper interface {
 // PortKeeper defines the expected IBC port keeper
 type PortKeeper interface {
 	BindPort(ctx sdk.Context, portID string) *capabilitytypes.Capability
+	IsBound(ctx sdk.Context, portID string) bool
 }
 
 type CapabilityKeeper interface {
@@ -104,4 +107,8 @@ type CapabilityKeeper interface {
 // ICS20TransferPortSource is a subset of the ibc transfer keeper.
 type ICS20TransferPortSource interface {
 	GetPort(ctx sdk.Context) string
+}
+
+type ICAControllerKeeper interface {
+	InitInterchainAccount(ctx sdk.Context, connectionID, counterpartyConnectionID, owner string) error
 }

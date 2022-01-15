@@ -30,6 +30,91 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// MsgBindICAPort to bind ica port for a smart contract given the connection id
+type MsgCreateInterchainAccountForSmartContract struct {
+	Sender          string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
+	ContractAddress string `protobuf:"bytes,2,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
+	ConnectionId    string `protobuf:"bytes,3,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+}
+
+func (m *MsgCreateInterchainAccountForSmartContract) Reset() {
+	*m = MsgCreateInterchainAccountForSmartContract{}
+}
+func (m *MsgCreateInterchainAccountForSmartContract) String() string {
+	return proto.CompactTextString(m)
+}
+func (*MsgCreateInterchainAccountForSmartContract) ProtoMessage() {}
+func (*MsgCreateInterchainAccountForSmartContract) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4f74d82755520264, []int{0}
+}
+func (m *MsgCreateInterchainAccountForSmartContract) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgCreateInterchainAccountForSmartContract) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgCreateInterchainAccountForSmartContract.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgCreateInterchainAccountForSmartContract) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgCreateInterchainAccountForSmartContract.Merge(m, src)
+}
+func (m *MsgCreateInterchainAccountForSmartContract) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgCreateInterchainAccountForSmartContract) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgCreateInterchainAccountForSmartContract.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgCreateInterchainAccountForSmartContract proto.InternalMessageInfo
+
+type MsgCreateInterchainAccountForSmartContractResponse struct {
+	RemoteAddress string `protobuf:"bytes,1,opt,name=remote_address,json=remoteAddress,proto3" json:"remote_address,omitempty"`
+}
+
+func (m *MsgCreateInterchainAccountForSmartContractResponse) Reset() {
+	*m = MsgCreateInterchainAccountForSmartContractResponse{}
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) String() string {
+	return proto.CompactTextString(m)
+}
+func (*MsgCreateInterchainAccountForSmartContractResponse) ProtoMessage() {}
+func (*MsgCreateInterchainAccountForSmartContractResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4f74d82755520264, []int{1}
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgCreateInterchainAccountForSmartContractResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgCreateInterchainAccountForSmartContractResponse.Merge(m, src)
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgCreateInterchainAccountForSmartContractResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgCreateInterchainAccountForSmartContractResponse proto.InternalMessageInfo
+
 // MsgStoreCode submit Wasm code to the system
 type MsgStoreCode struct {
 	// Sender is the that actor that signed the messages
@@ -45,7 +130,7 @@ func (m *MsgStoreCode) Reset()         { *m = MsgStoreCode{} }
 func (m *MsgStoreCode) String() string { return proto.CompactTextString(m) }
 func (*MsgStoreCode) ProtoMessage()    {}
 func (*MsgStoreCode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{0}
+	return fileDescriptor_4f74d82755520264, []int{2}
 }
 func (m *MsgStoreCode) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -84,7 +169,7 @@ func (m *MsgStoreCodeResponse) Reset()         { *m = MsgStoreCodeResponse{} }
 func (m *MsgStoreCodeResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgStoreCodeResponse) ProtoMessage()    {}
 func (*MsgStoreCodeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{1}
+	return fileDescriptor_4f74d82755520264, []int{3}
 }
 func (m *MsgStoreCodeResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -134,7 +219,7 @@ func (m *MsgInstantiateContract) Reset()         { *m = MsgInstantiateContract{}
 func (m *MsgInstantiateContract) String() string { return proto.CompactTextString(m) }
 func (*MsgInstantiateContract) ProtoMessage()    {}
 func (*MsgInstantiateContract) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{2}
+	return fileDescriptor_4f74d82755520264, []int{4}
 }
 func (m *MsgInstantiateContract) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -175,7 +260,7 @@ func (m *MsgInstantiateContractResponse) Reset()         { *m = MsgInstantiateCo
 func (m *MsgInstantiateContractResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgInstantiateContractResponse) ProtoMessage()    {}
 func (*MsgInstantiateContractResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{3}
+	return fileDescriptor_4f74d82755520264, []int{5}
 }
 func (m *MsgInstantiateContractResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -220,7 +305,7 @@ func (m *MsgExecuteContract) Reset()         { *m = MsgExecuteContract{} }
 func (m *MsgExecuteContract) String() string { return proto.CompactTextString(m) }
 func (*MsgExecuteContract) ProtoMessage()    {}
 func (*MsgExecuteContract) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{4}
+	return fileDescriptor_4f74d82755520264, []int{6}
 }
 func (m *MsgExecuteContract) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -259,7 +344,7 @@ func (m *MsgExecuteContractResponse) Reset()         { *m = MsgExecuteContractRe
 func (m *MsgExecuteContractResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgExecuteContractResponse) ProtoMessage()    {}
 func (*MsgExecuteContractResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{5}
+	return fileDescriptor_4f74d82755520264, []int{7}
 }
 func (m *MsgExecuteContractResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -304,7 +389,7 @@ func (m *MsgMigrateContract) Reset()         { *m = MsgMigrateContract{} }
 func (m *MsgMigrateContract) String() string { return proto.CompactTextString(m) }
 func (*MsgMigrateContract) ProtoMessage()    {}
 func (*MsgMigrateContract) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{6}
+	return fileDescriptor_4f74d82755520264, []int{8}
 }
 func (m *MsgMigrateContract) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -344,7 +429,7 @@ func (m *MsgMigrateContractResponse) Reset()         { *m = MsgMigrateContractRe
 func (m *MsgMigrateContractResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgMigrateContractResponse) ProtoMessage()    {}
 func (*MsgMigrateContractResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{7}
+	return fileDescriptor_4f74d82755520264, []int{9}
 }
 func (m *MsgMigrateContractResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -387,7 +472,7 @@ func (m *MsgUpdateAdmin) Reset()         { *m = MsgUpdateAdmin{} }
 func (m *MsgUpdateAdmin) String() string { return proto.CompactTextString(m) }
 func (*MsgUpdateAdmin) ProtoMessage()    {}
 func (*MsgUpdateAdmin) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{8}
+	return fileDescriptor_4f74d82755520264, []int{10}
 }
 func (m *MsgUpdateAdmin) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -424,7 +509,7 @@ func (m *MsgUpdateAdminResponse) Reset()         { *m = MsgUpdateAdminResponse{}
 func (m *MsgUpdateAdminResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgUpdateAdminResponse) ProtoMessage()    {}
 func (*MsgUpdateAdminResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{9}
+	return fileDescriptor_4f74d82755520264, []int{11}
 }
 func (m *MsgUpdateAdminResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -465,7 +550,7 @@ func (m *MsgClearAdmin) Reset()         { *m = MsgClearAdmin{} }
 func (m *MsgClearAdmin) String() string { return proto.CompactTextString(m) }
 func (*MsgClearAdmin) ProtoMessage()    {}
 func (*MsgClearAdmin) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{10}
+	return fileDescriptor_4f74d82755520264, []int{12}
 }
 func (m *MsgClearAdmin) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -502,7 +587,7 @@ func (m *MsgClearAdminResponse) Reset()         { *m = MsgClearAdminResponse{} }
 func (m *MsgClearAdminResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgClearAdminResponse) ProtoMessage()    {}
 func (*MsgClearAdminResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4f74d82755520264, []int{11}
+	return fileDescriptor_4f74d82755520264, []int{13}
 }
 func (m *MsgClearAdminResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -532,6 +617,8 @@ func (m *MsgClearAdminResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgClearAdminResponse proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterType((*MsgCreateInterchainAccountForSmartContract)(nil), "cosmwasm.wasm.v1.MsgCreateInterchainAccountForSmartContract")
+	proto.RegisterType((*MsgCreateInterchainAccountForSmartContractResponse)(nil), "cosmwasm.wasm.v1.MsgCreateInterchainAccountForSmartContractResponse")
 	proto.RegisterType((*MsgStoreCode)(nil), "cosmwasm.wasm.v1.MsgStoreCode")
 	proto.RegisterType((*MsgStoreCodeResponse)(nil), "cosmwasm.wasm.v1.MsgStoreCodeResponse")
 	proto.RegisterType((*MsgInstantiateContract)(nil), "cosmwasm.wasm.v1.MsgInstantiateContract")
@@ -549,55 +636,62 @@ func init() {
 func init() { proto.RegisterFile("cosmwasm/wasm/v1/tx.proto", fileDescriptor_4f74d82755520264) }
 
 var fileDescriptor_4f74d82755520264 = []byte{
-	// 759 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x55, 0xcd, 0x6e, 0xd3, 0x4a,
-	0x14, 0x8e, 0x1b, 0x27, 0x4d, 0x4e, 0x73, 0x7b, 0x23, 0xdf, 0x36, 0x37, 0xf5, 0xbd, 0x72, 0xa2,
-	0x80, 0x8a, 0x17, 0x60, 0x37, 0x45, 0x62, 0xc3, 0xaa, 0x49, 0x59, 0xb4, 0x92, 0x11, 0x72, 0x55,
-	0x2a, 0xd8, 0x44, 0x13, 0x7b, 0x6a, 0x2c, 0x1a, 0x4f, 0xf0, 0x71, 0x9b, 0xf6, 0x25, 0x10, 0x3b,
-	0xde, 0x81, 0xb7, 0x60, 0xd7, 0x15, 0xea, 0x06, 0x89, 0x55, 0x80, 0xf4, 0x2d, 0x58, 0x21, 0xff,
-	0xa5, 0x6e, 0xea, 0xa4, 0x41, 0x88, 0x4d, 0x32, 0xc7, 0xf3, 0x7d, 0xe7, 0xcc, 0xf9, 0xf4, 0xcd,
-	0x19, 0x58, 0x33, 0x18, 0xf6, 0x06, 0x04, 0x7b, 0x6a, 0xf0, 0x73, 0xd2, 0x54, 0xbd, 0x53, 0xa5,
-	0xef, 0x32, 0x8f, 0x09, 0xe5, 0x78, 0x4b, 0x09, 0x7e, 0x4e, 0x9a, 0xa2, 0xe4, 0x7f, 0x61, 0xa8,
-	0x76, 0x09, 0x52, 0xf5, 0xa4, 0xd9, 0xa5, 0x1e, 0x69, 0xaa, 0x06, 0xb3, 0x9d, 0x90, 0x21, 0xae,
-	0x58, 0xcc, 0x62, 0xc1, 0x52, 0xf5, 0x57, 0xd1, 0xd7, 0xff, 0x6f, 0x96, 0x38, 0xeb, 0x53, 0x0c,
-	0x77, 0x1b, 0x1f, 0x39, 0x28, 0x69, 0x68, 0xed, 0x79, 0xcc, 0xa5, 0x6d, 0x66, 0x52, 0xa1, 0x02,
-	0x79, 0xa4, 0x8e, 0x49, 0xdd, 0x2a, 0x57, 0xe7, 0xe4, 0xa2, 0x1e, 0x45, 0xc2, 0x23, 0x58, 0xf6,
-	0xf9, 0x9d, 0xee, 0x99, 0x47, 0x3b, 0x06, 0x33, 0x69, 0x75, 0xa1, 0xce, 0xc9, 0xa5, 0x56, 0x79,
-	0x34, 0xac, 0x95, 0x0e, 0xb6, 0xf6, 0xb4, 0xd6, 0x99, 0x17, 0x64, 0xd0, 0x4b, 0x3e, 0x2e, 0x8e,
-	0x84, 0x7d, 0xa8, 0xd8, 0x0e, 0x7a, 0xc4, 0xf1, 0x6c, 0xe2, 0xd1, 0x4e, 0x9f, 0xba, 0x3d, 0x1b,
-	0xd1, 0x66, 0x4e, 0x35, 0x57, 0xe7, 0xe4, 0xa5, 0x4d, 0x49, 0x99, 0xec, 0x53, 0xd9, 0x32, 0x0c,
-	0x8a, 0xd8, 0x66, 0xce, 0xa1, 0x6d, 0xe9, 0xab, 0x09, 0xf6, 0xb3, 0x31, 0x79, 0x97, 0x2f, 0x64,
-	0xcb, 0xfc, 0x2e, 0x5f, 0xe0, 0xcb, 0xb9, 0xc6, 0x63, 0x58, 0x49, 0xb6, 0xa0, 0x53, 0xec, 0x33,
-	0x07, 0xa9, 0x70, 0x07, 0x16, 0xfd, 0x83, 0x76, 0x6c, 0x33, 0xe8, 0x85, 0x6f, 0xc1, 0x68, 0x58,
-	0xcb, 0xfb, 0x90, 0x9d, 0x6d, 0x3d, 0xef, 0x6f, 0xed, 0x98, 0x8d, 0xb7, 0x0b, 0x50, 0xd1, 0xd0,
-	0xda, 0xb9, 0xaa, 0xd2, 0x66, 0x8e, 0xe7, 0x12, 0xc3, 0x9b, 0x2a, 0xc5, 0x0a, 0xe4, 0x88, 0xd9,
-	0xb3, 0x9d, 0x40, 0x81, 0xa2, 0x1e, 0x06, 0xc9, 0x6a, 0xd9, 0x69, 0xd5, 0x7c, 0xea, 0x11, 0xe9,
-	0xd2, 0xa3, 0x2a, 0x1f, 0x52, 0x83, 0x40, 0x90, 0x21, 0xdb, 0x43, 0x2b, 0x10, 0xa4, 0xd4, 0xaa,
-	0xfc, 0x18, 0xd6, 0x04, 0x9d, 0x0c, 0xe2, 0x63, 0x68, 0x14, 0x91, 0x58, 0x54, 0xf7, 0x21, 0x02,
-	0x81, 0xdc, 0xe1, 0xb1, 0x63, 0x62, 0x35, 0x5f, 0xcf, 0xca, 0x4b, 0x9b, 0x6b, 0x4a, 0x68, 0x09,
-	0xc5, 0xb7, 0x84, 0x12, 0x59, 0x42, 0x69, 0x33, 0xdb, 0x69, 0x6d, 0x9c, 0x0f, 0x6b, 0x99, 0x0f,
-	0x5f, 0x6b, 0xb2, 0x65, 0x7b, 0xaf, 0x8e, 0xbb, 0x8a, 0xc1, 0x7a, 0x6a, 0xe4, 0x9f, 0xf0, 0xef,
-	0x01, 0x9a, 0xaf, 0x23, 0x2b, 0xf8, 0x04, 0xd4, 0xc3, 0xcc, 0x8d, 0xa7, 0x20, 0xa5, 0xeb, 0x31,
-	0xd6, 0xb5, 0x0a, 0x8b, 0xc4, 0x34, 0x5d, 0x8a, 0x18, 0x09, 0x13, 0x87, 0x82, 0x00, 0xbc, 0x49,
-	0x3c, 0x12, 0x5a, 0x43, 0x0f, 0xd6, 0x8d, 0xcf, 0x1c, 0x08, 0x1a, 0x5a, 0x4f, 0x4e, 0xa9, 0x71,
-	0x3c, 0x87, 0xb8, 0x22, 0x14, 0x8c, 0x08, 0x13, 0xe9, 0x3b, 0x8e, 0x63, 0x9d, 0xb2, 0xbf, 0xa0,
-	0x53, 0xee, 0x8f, 0xe9, 0xb4, 0x01, 0xe2, 0xcd, 0xb6, 0xc6, 0x1a, 0xc5, 0x4a, 0x70, 0x09, 0x25,
-	0xde, 0x87, 0x4a, 0x68, 0xb6, 0xe5, 0x92, 0xdf, 0x54, 0x62, 0x2e, 0xb3, 0x45, 0x72, 0xf1, 0xb7,
-	0xca, 0x15, 0xf5, 0x32, 0x71, 0xb0, 0x99, 0xbd, 0x10, 0x58, 0xd6, 0xd0, 0xda, 0xef, 0x9b, 0xc4,
-	0xa3, 0x5b, 0x81, 0xff, 0xa7, 0xb5, 0xf1, 0x1f, 0x14, 0x1d, 0x3a, 0xe8, 0x24, 0x6f, 0x4c, 0xc1,
-	0xa1, 0x83, 0x90, 0x94, 0xec, 0x31, 0x7b, 0xbd, 0xc7, 0x46, 0x35, 0xb8, 0x98, 0x89, 0x12, 0xf1,
-	0x81, 0x1a, 0x6d, 0xf8, 0x4b, 0x43, 0xab, 0x7d, 0x44, 0x89, 0x3b, 0xbb, 0xf6, 0xac, 0xf4, 0xff,
-	0xc2, 0xea, 0xb5, 0x24, 0x71, 0xf6, 0xcd, 0x4f, 0x3c, 0x64, 0x35, 0xb4, 0x84, 0x3d, 0x28, 0x5e,
-	0x8d, 0xc5, 0x94, 0x31, 0x95, 0x9c, 0x39, 0xe2, 0xfa, 0xec, 0xfd, 0xb1, 0x96, 0x6f, 0xe0, 0x9f,
-	0xb4, 0x51, 0x23, 0xa7, 0xd2, 0x53, 0x90, 0xe2, 0xc6, 0xbc, 0xc8, 0x71, 0x49, 0x0a, 0x7f, 0x4f,
-	0x5e, 0xbe, 0xbb, 0xa9, 0x49, 0x26, 0x50, 0xe2, 0xfd, 0x79, 0x50, 0xc9, 0x32, 0x93, 0xce, 0x4e,
-	0x2f, 0x33, 0x81, 0x9a, 0x52, 0x66, 0x9a, 0x19, 0x5f, 0xc0, 0x52, 0xd2, 0x75, 0xf5, 0x54, 0x72,
-	0x02, 0x21, 0xca, 0xb7, 0x21, 0xc6, 0xa9, 0x9f, 0x03, 0x24, 0x3c, 0x55, 0x4b, 0xe5, 0x5d, 0x01,
-	0xc4, 0x7b, 0xb7, 0x00, 0xe2, 0xbc, 0xad, 0xed, 0xf3, 0xef, 0x52, 0xe6, 0x7c, 0x24, 0x71, 0x17,
-	0x23, 0x89, 0xfb, 0x36, 0x92, 0xb8, 0x77, 0x97, 0x52, 0xe6, 0xe2, 0x52, 0xca, 0x7c, 0xb9, 0x94,
-	0x32, 0x2f, 0xd7, 0x13, 0x83, 0xa7, 0xcd, 0xb0, 0x77, 0x10, 0x3f, 0xd5, 0xa6, 0x7a, 0x1a, 0x3e,
-	0xd9, 0xc1, 0xf0, 0xe9, 0xe6, 0x83, 0x07, 0xfb, 0xe1, 0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x56,
-	0xd2, 0x4b, 0x17, 0x33, 0x08, 0x00, 0x00,
+	// 872 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0x4d, 0x6f, 0xe3, 0x44,
+	0x18, 0x8e, 0xd7, 0x4e, 0xb6, 0x7d, 0x9b, 0x76, 0x23, 0xd3, 0x2d, 0x5e, 0x83, 0x9c, 0xca, 0x0b,
+	0xbb, 0x01, 0x81, 0xdd, 0x16, 0x89, 0x0b, 0x5c, 0x9a, 0x14, 0xa4, 0xac, 0x64, 0x84, 0x5c, 0x2d,
+	0x2b, 0xe0, 0x10, 0x4d, 0xec, 0x59, 0xaf, 0x45, 0x3d, 0x13, 0x3c, 0xd3, 0xaf, 0x3f, 0x81, 0x38,
+	0x20, 0xf1, 0x1f, 0x90, 0xf8, 0x11, 0xdc, 0x7a, 0xdc, 0x0b, 0x12, 0xa7, 0x00, 0xe9, 0xbf, 0xe0,
+	0x80, 0xd0, 0xf8, 0x2b, 0x6e, 0xd6, 0xf9, 0x40, 0xd5, 0x5e, 0x12, 0xcf, 0xcc, 0xf3, 0xbc, 0x1f,
+	0xcf, 0xbc, 0xef, 0xab, 0x81, 0x07, 0x1e, 0x65, 0xd1, 0x39, 0x62, 0x91, 0x9d, 0xfc, 0x9c, 0xed,
+	0xdb, 0xfc, 0xc2, 0x1a, 0xc5, 0x94, 0x53, 0xb5, 0x95, 0x1f, 0x59, 0xc9, 0xcf, 0xd9, 0xbe, 0x6e,
+	0x88, 0x1d, 0xca, 0xec, 0x21, 0x62, 0xd8, 0x3e, 0xdb, 0x1f, 0x62, 0x8e, 0xf6, 0x6d, 0x8f, 0x86,
+	0x24, 0x65, 0xe8, 0xdb, 0x01, 0x0d, 0x68, 0xf2, 0x69, 0x8b, 0xaf, 0x6c, 0xf7, 0xed, 0x57, 0x5d,
+	0x5c, 0x8e, 0x30, 0x4b, 0x4f, 0xcd, 0x9f, 0x24, 0x78, 0xdf, 0x61, 0x41, 0x2f, 0xc6, 0x88, 0xe3,
+	0x3e, 0xe1, 0x38, 0xf6, 0x5e, 0xa0, 0x90, 0x1c, 0x7a, 0x1e, 0x3d, 0x25, 0xfc, 0x73, 0x1a, 0x1f,
+	0x47, 0x28, 0xe6, 0x3d, 0x4a, 0x78, 0x8c, 0x3c, 0xae, 0xee, 0x40, 0x83, 0x61, 0xe2, 0xe3, 0x58,
+	0x93, 0x76, 0xa5, 0xce, 0xba, 0x9b, 0xad, 0xd4, 0xf7, 0xa0, 0xe5, 0x65, 0x98, 0x01, 0xf2, 0xfd,
+	0x18, 0x33, 0xa6, 0xdd, 0x49, 0x10, 0xf7, 0xf2, 0xfd, 0xc3, 0x74, 0x5b, 0x7d, 0x08, 0x9b, 0x1e,
+	0x25, 0x04, 0x7b, 0x3c, 0xa4, 0x64, 0x10, 0xfa, 0x9a, 0x9c, 0xe0, 0x9a, 0xd3, 0xcd, 0xbe, 0x6f,
+	0x7e, 0x0b, 0x07, 0xab, 0x47, 0xe5, 0x62, 0x36, 0xa2, 0x84, 0x61, 0xf5, 0x5d, 0xd8, 0x8a, 0x71,
+	0x44, 0x39, 0x2e, 0x62, 0x48, 0xa3, 0xdc, 0x4c, 0x77, 0xb3, 0x08, 0xcc, 0xdf, 0x24, 0x68, 0x3a,
+	0x2c, 0x38, 0xe6, 0x34, 0xc6, 0x3d, 0xea, 0xe3, 0xb9, 0x59, 0x7d, 0x0c, 0x5b, 0x42, 0xb3, 0xc1,
+	0xf0, 0x92, 0xe3, 0x81, 0x47, 0x7d, 0x9c, 0xe4, 0xd4, 0xec, 0xb6, 0x26, 0xe3, 0x76, 0xf3, 0xd9,
+	0xe1, 0xb1, 0xd3, 0xbd, 0xe4, 0x89, 0x05, 0xb7, 0x29, 0x70, 0xf9, 0x4a, 0x7d, 0x0a, 0x3b, 0x21,
+	0x61, 0x1c, 0x11, 0x1e, 0x22, 0x8e, 0x07, 0x23, 0x1c, 0x47, 0x21, 0x63, 0x21, 0x25, 0x5a, 0x7d,
+	0x57, 0xea, 0x6c, 0x1c, 0x18, 0xd6, 0xec, 0xdd, 0x5a, 0x87, 0x9e, 0x87, 0x19, 0xeb, 0x51, 0xf2,
+	0x3c, 0x0c, 0xdc, 0xfb, 0x25, 0xf6, 0x97, 0x05, 0xf9, 0x89, 0xb2, 0x26, 0xb7, 0x94, 0x27, 0xca,
+	0x9a, 0xd2, 0xaa, 0x9b, 0x9f, 0xc0, 0x76, 0x39, 0x85, 0x42, 0x82, 0x87, 0x70, 0x57, 0x04, 0x2a,
+	0x74, 0x15, 0xb9, 0x28, 0x5d, 0x98, 0x8c, 0xdb, 0x0d, 0x01, 0xe9, 0x1f, 0xb9, 0x0d, 0x71, 0xd4,
+	0xf7, 0xcd, 0x1f, 0xee, 0xc0, 0x8e, 0xc3, 0x82, 0xfe, 0xd4, 0xcb, 0xd2, 0x0b, 0xde, 0x86, 0x3a,
+	0xf2, 0xa3, 0x90, 0x64, 0xb7, 0x9a, 0x2e, 0xca, 0xde, 0xe4, 0x79, 0xde, 0x04, 0xf5, 0x04, 0x0d,
+	0xf1, 0x89, 0xa6, 0xa4, 0xd4, 0x64, 0xa1, 0x76, 0x40, 0x8e, 0x58, 0x90, 0x08, 0xd2, 0xec, 0xee,
+	0xfc, 0x33, 0x6e, 0xab, 0x2e, 0x3a, 0xcf, 0xc3, 0x70, 0x30, 0x63, 0x28, 0xc0, 0xae, 0x80, 0xa8,
+	0x08, 0xea, 0xcf, 0x4f, 0x89, 0xcf, 0xb4, 0xc6, 0xae, 0xdc, 0xd9, 0x38, 0x78, 0x60, 0xa5, 0x6d,
+	0x60, 0x89, 0x36, 0xb0, 0xb2, 0x36, 0xb0, 0x7a, 0x34, 0x24, 0xdd, 0xbd, 0xab, 0x71, 0xbb, 0xf6,
+	0xcb, 0x9f, 0xed, 0x4e, 0x10, 0xf2, 0x17, 0xa7, 0x43, 0xcb, 0xa3, 0x91, 0x9d, 0xf5, 0x4c, 0xfa,
+	0xf7, 0x21, 0xf3, 0xbf, 0xcb, 0xca, 0x5f, 0x10, 0x98, 0x9b, 0x5a, 0x36, 0xbf, 0x00, 0xa3, 0x5a,
+	0x8f, 0x42, 0x57, 0x0d, 0xee, 0xde, 0xac, 0xa9, 0x7c, 0xa9, 0xaa, 0xa0, 0xf8, 0x88, 0xa3, 0xb4,
+	0x34, 0xdc, 0xe4, 0xdb, 0xfc, 0x5d, 0x02, 0xd5, 0x61, 0xc1, 0x67, 0x17, 0xd8, 0x3b, 0x5d, 0x41,
+	0x5c, 0x1d, 0xd6, 0xf2, 0x2e, 0xc9, 0xf4, 0x2d, 0xd6, 0xb9, 0x4e, 0xf2, 0xff, 0xd0, 0xa9, 0xfe,
+	0xda, 0x74, 0xda, 0x03, 0xfd, 0xd5, 0xb4, 0x0a, 0x8d, 0x72, 0x25, 0xa4, 0x92, 0x12, 0x3f, 0xa7,
+	0x4a, 0x38, 0x61, 0x10, 0xa3, 0x5b, 0x2a, 0xb1, 0x52, 0xb1, 0x65, 0x72, 0x29, 0x4b, 0xe5, 0xca,
+	0x72, 0x99, 0x09, 0x6c, 0x61, 0x2e, 0x08, 0xb6, 0x1c, 0x16, 0x3c, 0x1d, 0xf9, 0x48, 0xcc, 0x12,
+	0x51, 0xff, 0xf3, 0xd2, 0x78, 0x0b, 0xd6, 0x09, 0x3e, 0x1f, 0x94, 0x3b, 0x66, 0x8d, 0xe0, 0xf3,
+	0x94, 0x54, 0xce, 0x51, 0xbe, 0x99, 0xa3, 0xa9, 0x25, 0x8d, 0x59, 0x72, 0x91, 0x07, 0x64, 0xf6,
+	0x60, 0x53, 0x4c, 0xc4, 0x13, 0x8c, 0xe2, 0xc5, 0xbe, 0x17, 0x99, 0x7f, 0x13, 0xee, 0xdf, 0x30,
+	0x92, 0x5b, 0x3f, 0xf8, 0xb7, 0x0e, 0xb2, 0xc3, 0x02, 0xf5, 0x18, 0xd6, 0xa7, 0x63, 0xb1, 0x62,
+	0x4c, 0x95, 0x67, 0x8e, 0xfe, 0x68, 0xf1, 0x79, 0xa1, 0xe5, 0xf7, 0xf0, 0x46, 0xd5, 0xa8, 0xe9,
+	0x54, 0xd2, 0x2b, 0x90, 0xfa, 0xde, 0xaa, 0xc8, 0xc2, 0x25, 0x86, 0x7b, 0xb3, 0xcd, 0xf7, 0x4e,
+	0xa5, 0x91, 0x19, 0x94, 0xfe, 0xc1, 0x2a, 0xa8, 0xb2, 0x9b, 0xd9, 0xca, 0xae, 0x76, 0x33, 0x83,
+	0x9a, 0xe3, 0x66, 0x5e, 0x31, 0x7e, 0x0d, 0x1b, 0xe5, 0xaa, 0xdb, 0xad, 0x24, 0x97, 0x10, 0x7a,
+	0x67, 0x19, 0xa2, 0x30, 0xfd, 0x15, 0x40, 0xa9, 0xa6, 0xda, 0x95, 0xbc, 0x29, 0x40, 0x7f, 0xbc,
+	0x04, 0x50, 0xd8, 0xfd, 0x55, 0x82, 0xc7, 0xab, 0x3e, 0x2a, 0x3e, 0xad, 0x36, 0xba, 0x1a, 0x5b,
+	0x3f, 0xba, 0x0d, 0x3b, 0x8f, 0xb7, 0x7b, 0x74, 0xf5, 0xb7, 0x51, 0xbb, 0x9a, 0x18, 0xd2, 0xcb,
+	0x89, 0x21, 0xfd, 0x35, 0x31, 0xa4, 0x1f, 0xaf, 0x8d, 0xda, 0xcb, 0x6b, 0xa3, 0xf6, 0xc7, 0xb5,
+	0x51, 0xfb, 0xe6, 0x51, 0x69, 0x50, 0xf6, 0x28, 0x8b, 0x9e, 0xe5, 0xcf, 0x29, 0xdf, 0xbe, 0x48,
+	0x9f, 0x55, 0xc9, 0xb0, 0x1c, 0x36, 0x92, 0x47, 0xd5, 0x47, 0xff, 0x05, 0x00, 0x00, 0xff, 0xff,
+	0x5f, 0xc2, 0xec, 0x90, 0xd7, 0x09, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -624,6 +718,7 @@ type MsgClient interface {
 	UpdateAdmin(ctx context.Context, in *MsgUpdateAdmin, opts ...grpc.CallOption) (*MsgUpdateAdminResponse, error)
 	// ClearAdmin removes any admin stored for a smart contract
 	ClearAdmin(ctx context.Context, in *MsgClearAdmin, opts ...grpc.CallOption) (*MsgClearAdminResponse, error)
+	CreateInterchainAccountForSmartContract(ctx context.Context, in *MsgCreateInterchainAccountForSmartContract, opts ...grpc.CallOption) (*MsgCreateInterchainAccountForSmartContractResponse, error)
 }
 
 type msgClient struct {
@@ -688,6 +783,15 @@ func (c *msgClient) ClearAdmin(ctx context.Context, in *MsgClearAdmin, opts ...g
 	return out, nil
 }
 
+func (c *msgClient) CreateInterchainAccountForSmartContract(ctx context.Context, in *MsgCreateInterchainAccountForSmartContract, opts ...grpc.CallOption) (*MsgCreateInterchainAccountForSmartContractResponse, error) {
+	out := new(MsgCreateInterchainAccountForSmartContractResponse)
+	err := c.cc.Invoke(ctx, "/cosmwasm.wasm.v1.Msg/CreateInterchainAccountForSmartContract", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	// StoreCode to submit Wasm code to the system
@@ -702,6 +806,7 @@ type MsgServer interface {
 	UpdateAdmin(context.Context, *MsgUpdateAdmin) (*MsgUpdateAdminResponse, error)
 	// ClearAdmin removes any admin stored for a smart contract
 	ClearAdmin(context.Context, *MsgClearAdmin) (*MsgClearAdminResponse, error)
+	CreateInterchainAccountForSmartContract(context.Context, *MsgCreateInterchainAccountForSmartContract) (*MsgCreateInterchainAccountForSmartContractResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -725,6 +830,9 @@ func (*UnimplementedMsgServer) UpdateAdmin(ctx context.Context, req *MsgUpdateAd
 }
 func (*UnimplementedMsgServer) ClearAdmin(ctx context.Context, req *MsgClearAdmin) (*MsgClearAdminResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearAdmin not implemented")
+}
+func (*UnimplementedMsgServer) CreateInterchainAccountForSmartContract(ctx context.Context, req *MsgCreateInterchainAccountForSmartContract) (*MsgCreateInterchainAccountForSmartContractResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateInterchainAccountForSmartContract not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
@@ -839,6 +947,24 @@ func _Msg_ClearAdmin_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_CreateInterchainAccountForSmartContract_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgCreateInterchainAccountForSmartContract)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).CreateInterchainAccountForSmartContract(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmwasm.wasm.v1.Msg/CreateInterchainAccountForSmartContract",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).CreateInterchainAccountForSmartContract(ctx, req.(*MsgCreateInterchainAccountForSmartContract))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cosmwasm.wasm.v1.Msg",
 	HandlerType: (*MsgServer)(nil),
@@ -867,9 +993,87 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 			MethodName: "ClearAdmin",
 			Handler:    _Msg_ClearAdmin_Handler,
 		},
+		{
+			MethodName: "CreateInterchainAccountForSmartContract",
+			Handler:    _Msg_CreateInterchainAccountForSmartContract_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "cosmwasm/wasm/v1/tx.proto",
+}
+
+func (m *MsgCreateInterchainAccountForSmartContract) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgCreateInterchainAccountForSmartContract) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgCreateInterchainAccountForSmartContract) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.ConnectionId) > 0 {
+		i -= len(m.ConnectionId)
+		copy(dAtA[i:], m.ConnectionId)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.ConnectionId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ContractAddress) > 0 {
+		i -= len(m.ContractAddress)
+		copy(dAtA[i:], m.ContractAddress)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.ContractAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Sender) > 0 {
+		i -= len(m.Sender)
+		copy(dAtA[i:], m.Sender)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Sender)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgCreateInterchainAccountForSmartContractResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgCreateInterchainAccountForSmartContractResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgCreateInterchainAccountForSmartContractResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RemoteAddress) > 0 {
+		i -= len(m.RemoteAddress)
+		copy(dAtA[i:], m.RemoteAddress)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.RemoteAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *MsgStoreCode) Marshal() (dAtA []byte, err error) {
@@ -1361,6 +1565,40 @@ func encodeVarintTx(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
+func (m *MsgCreateInterchainAccountForSmartContract) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Sender)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.ContractAddress)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.ConnectionId)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+
+func (m *MsgCreateInterchainAccountForSmartContractResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RemoteAddress)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+
 func (m *MsgStoreCode) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1583,6 +1821,234 @@ func sovTx(x uint64) (n int) {
 }
 func sozTx(x uint64) (n int) {
 	return sovTx(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *MsgCreateInterchainAccountForSmartContract) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgCreateInterchainAccountForSmartContract: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgCreateInterchainAccountForSmartContract: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Sender = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContractAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContractAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConnectionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ConnectionId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgCreateInterchainAccountForSmartContractResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgCreateInterchainAccountForSmartContractResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgCreateInterchainAccountForSmartContractResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RemoteAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 func (m *MsgStoreCode) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)

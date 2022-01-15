@@ -23,6 +23,21 @@ service Msg {
   rpc UpdateAdmin(MsgUpdateAdmin) returns (MsgUpdateAdminResponse);
   // ClearAdmin removes any admin stored for a smart contract
   rpc ClearAdmin(MsgClearAdmin) returns (MsgClearAdminResponse);
+  rpc CreateInterchainAccountForSmartContract(MsgCreateInterchainAccountForSmartContract) returns (MsgCreateInterchainAccountForSmartContractResponse);
+}
+
+// MsgBindICAPort to bind ica port for a smart contract given the connection id
+message MsgCreateInterchainAccountForSmartContract {
+  
+  string sender = 1;
+
+  string contract_address = 2;
+
+  string connection_id = 3;
+}
+
+message MsgCreateInterchainAccountForSmartContractResponse {
+  string remote_address = 1;
 }
 
 // MsgStoreCode submit Wasm code to the system

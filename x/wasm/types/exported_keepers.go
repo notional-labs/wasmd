@@ -50,6 +50,9 @@ type ContractOpsKeeper interface {
 
 	// SetContractInfoExtension updates the extension point data that is stored with the contract info
 	SetContractInfoExtension(ctx sdk.Context, contract sdk.AccAddress, extra ContractInfoExtension) error
+
+	// create ica account for contract
+	NewInterchainAccountForContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error)
 }
 
 // IBCContractKeeper IBC lifecycle event handler
