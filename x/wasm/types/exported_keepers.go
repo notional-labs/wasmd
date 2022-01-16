@@ -52,7 +52,7 @@ type ContractOpsKeeper interface {
 	SetContractInfoExtension(ctx sdk.Context, contract sdk.AccAddress, extra ContractInfoExtension) error
 
 	// create ica account for contract
-	NewInterchainAccountForContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error)
+	NewICAPortForSmartContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error)
 }
 
 // IBCContractKeeper IBC lifecycle event handler

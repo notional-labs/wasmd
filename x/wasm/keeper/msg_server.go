@@ -19,16 +19,16 @@ func NewMsgServerImpl(k types.ContractOpsKeeper) types.MsgServer {
 	return &msgServer{keeper: k}
 }
 
-func (m msgServer) CreateInterchainAccountForSmartContract(goCtx context.Context, msg *types.MsgCreateInterchainAccountForSmartContract) (*types.MsgCreateInterchainAccountForSmartContractResponse, error) {
+func (m msgServer) CreateICAPortForSmartContract(goCtx context.Context, msg *types.MsgCreateICAPortForSmartContract) (*types.MsgCreateICAPortForSmartContractResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	remoteContractAddress, err := m.keeper.NewInterchainAccountForContract(ctx, msg.ContractAddress, msg.ConnectionId)
+	remoteContractAddress, err := m.keeper.NewICAPortForSmartContract(ctx, msg.ContractAddress, msg.ConnectionId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.MsgCreateInterchainAccountForSmartContractResponse{
-		RemoteAddress: remoteContractAddress,
+	return &types.MsgCreateICAPortForSmartContractResponse{
+		IcaAddress: remoteContractAddress,
 	}, nil
 
 }

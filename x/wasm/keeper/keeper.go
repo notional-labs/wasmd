@@ -22,6 +22,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
+	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -73,7 +74,6 @@ type Keeper struct {
 	wasmVMResponseHandler WasmVMResponseHandler
 	messenger             Messenger
 	connectionKeeper      types.ConnectionKeeper
-	icaControllerKeeper   types.ICAControllerKeeper
 
 	// queryGasLimit is the max wasmvm gas that can be spent on executing a query with a contract
 	queryGasLimit uint64
@@ -93,6 +93,7 @@ func NewKeeper(
 	distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
+	connectionKeeper types.ConnectionKeeper,
 	capabilityKeeper types.CapabilityKeeper,
 	portSource types.ICS20TransferPortSource,
 	router sdk.Router,
@@ -683,7 +684,7 @@ func (k Keeper) IterateContractInfo(ctx sdk.Context, cb func(sdk.AccAddress, typ
 	}
 }
 
-func (k Keeper) newInterchainAccountForContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error) {
+func (k Keeper) newICAPortForSmartContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error) {
 
 	connectionEnd, found := k.connectionKeeper.GetConnection(ctx, connectionID)
 	if !found {
@@ -691,14 +692,18 @@ func (k Keeper) newInterchainAccountForContract(ctx sdk.Context, contractAddress
 	}
 	counterpartyConnectionID := connectionEnd.Counterparty.ConnectionId
 
-	err := k.icaControllerKeeper.InitInterchainAccount(ctx, connectionID, counterpartyConnectionID, contractAddress)
+	portID, err := types.GenerateICAPortID(contractAddress, connectionID, counterpartyConnectionID)
 	if err != nil {
 		return "", err
 	}
 
-	portID, err := icatypes.GeneratePortID(contractAddress, connectionID, counterpartyConnectionID)
-	if err != nil {
-		return "", err
+	if k.portKeeper.IsBound(ctx, portID) {
+		return "", sdkerrors.Wrap(icatypes.ErrPortAlreadyBound, portID)
+	}
+
+	cap := k.portKeeper.BindPort(ctx, portID)
+	if err := k.ClaimCapability(ctx, cap, host.PortPath(portID)); err != nil {
+		return "", sdkerrors.Wrap(err, "unable to bind to newly generated portID")
 	}
 
 	contractAccAddr, err := sdk.AccAddressFromBech32(contractAddress)
@@ -710,11 +715,11 @@ func (k Keeper) newInterchainAccountForContract(ctx sdk.Context, contractAddress
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
 	prefixStore.Set([]byte(connectionID), []byte(portID))
 
-	remoteAcc := icatypes.GenerateAddress(k.accountKeeper.GetModuleAddress(icatypes.ModuleName), portID)
+	contractIcaAccAddr := icatypes.GenerateAddress(k.accountKeeper.GetModuleAddress(icatypes.ModuleName), portID)
 
-	remoteContractAddress := icatypes.NewInterchainAccount(authtypes.NewBaseAccountWithAddress(remoteAcc), portID)
+	contractIcaAddress := icatypes.NewInterchainAccount(authtypes.NewBaseAccountWithAddress(contractIcaAccAddr), portID).Address
 
-	return remoteContractAddress.Address, nil
+	return contractIcaAddress, nil
 }
 
 func (k Keeper) GetContractState(ctx sdk.Context, contractAddress sdk.AccAddress) sdk.Iterator {

@@ -1,11 +1,13 @@
 package keeper
 
 import (
+	"math"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 
 	"github.com/CosmWasm/wasmd/x/wasm/types"
@@ -38,10 +40,15 @@ func PortIDForContract(addr sdk.AccAddress) string {
 }
 
 func ContractFromPortID(portID string) (sdk.AccAddress, error) {
+	s := strings.Split(portID, ".")
+	if len(s) == 4 {
+		return sdk.AccAddressFromBech32(s[3])
+	}
 	if !strings.HasPrefix(portID, portIDPrefix) {
 		return nil, sdkerrors.Wrapf(types.ErrInvalid, "without prefix")
 	}
 	return sdk.AccAddressFromBech32(portID[len(portIDPrefix):])
+
 }
 
 // AuthenticateCapability wraps the scopedKeeper's AuthenticateCapability function
@@ -53,4 +60,17 @@ func (k Keeper) AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Cap
 // that IBC module passes to it
 func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	return k.capabilityKeeper.ClaimCapability(ctx, cap, name)
+}
+
+func ValidateChannelParams(channelID string) error {
+	// NOTE: for escrow address security only 2^32 channels are allowed to be created
+	// Issue: https://github.com/cosmos/cosmos-sdk/issues/7737
+	channelSequence, err := channeltypes.ParseChannelSequence(channelID)
+	if err != nil {
+		return err
+	}
+	if channelSequence > math.MaxUint32 {
+		return sdkerrors.Wrapf(types.ErrMaxIBCChannels, "channel sequence %d is greater than max allowed transfer channels %d", channelSequence, math.MaxUint32)
+	}
+	return nil
 }

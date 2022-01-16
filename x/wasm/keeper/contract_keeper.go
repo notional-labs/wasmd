@@ -18,7 +18,7 @@ type decoratedKeeper interface {
 	unpinCode(ctx sdk.Context, codeID uint64) error
 	execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress, msg []byte, coins sdk.Coins) ([]byte, error)
 	setContractInfoExtension(ctx sdk.Context, contract sdk.AccAddress, extra types.ContractInfoExtension) error
-	newInterchainAccountForContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error)
+	newICAPortForSmartContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error)
 }
 
 type PermissionedKeeper struct {
@@ -75,6 +75,6 @@ func (p PermissionedKeeper) SetContractInfoExtension(ctx sdk.Context, contract s
 	return p.nested.setContractInfoExtension(ctx, contract, extra)
 }
 
-func (p PermissionedKeeper) NewInterchainAccountForContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error) {
-	return p.nested.newInterchainAccountForContract(ctx, contractAddress, connectionID)
+func (p PermissionedKeeper) NewICAPortForSmartContract(ctx sdk.Context, contractAddress string, connectionID string) (string, error) {
+	return p.nested.newICAPortForSmartContract(ctx, contractAddress, connectionID)
 }
