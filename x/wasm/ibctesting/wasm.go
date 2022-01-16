@@ -86,6 +86,8 @@ func (c *TestChain) InstantiateContract(codeID uint64, msg []byte) sdk.AccAddres
 	return a
 }
 
+func (c *TestChain) Execute(instantiateMsg types.MsgInstantiateContractResponse)
+
 // SmartQuery This will serialize the query message and submit it to the contract.
 // The response is parsed into the provided interface.
 // Usage: SmartQuery(addr, QueryMsg{Foo: 1}, &response)

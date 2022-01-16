@@ -321,6 +321,7 @@ func createTestInput(
 		distKeeper,
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,
+		ibcKeeper.ConnectionKeeper,
 		scopedWasmKeeper,
 		wasmtesting.MockIBCTransferKeeper{},
 		router,

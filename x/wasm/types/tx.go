@@ -317,3 +317,31 @@ func (msg MsgIBCCloseChannel) GetSignBytes() []byte {
 func (msg MsgIBCCloseChannel) GetSigners() []sdk.AccAddress {
 	return nil
 }
+
+func (msg MsgCreateICAPortForSmartContract) Route() string {
+	return RouterKey
+}
+
+func (msg MsgCreateICAPortForSmartContract) Type() string {
+	return "create-ica-port"
+}
+
+func (msg MsgCreateICAPortForSmartContract) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Sender); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (msg MsgCreateICAPortForSmartContract) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+
+}
+
+func (msg MsgCreateICAPortForSmartContract) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil { // should never happen as valid basic rejects invalid addresses
+		panic(err.Error())
+	}
+	return []sdk.AccAddress{senderAddr}
+}

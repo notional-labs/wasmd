@@ -247,3 +247,32 @@ func parseExecuteArgs(contractAddr string, execMsg string, sender sdk.AccAddress
 		Msg:      []byte(execMsg),
 	}, nil
 }
+
+// StoreCodeCmd will upload code to be reused.
+func BindICAPortCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "store [wasm file]",
+		Short:   "Upload a wasm binary",
+		Aliases: []string{"upload", "st", "s"},
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			msg, err := parseStoreCodeArgs(args[0], clientCtx.GetFromAddress(), cmd.Flags())
+			if err != nil {
+				return err
+			}
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+		},
+	}
+
+	cmd.Flags().String(flagInstantiateByEverybody, "", "Everybody can instantiate a contract from the code, optional")
+	cmd.Flags().String(flagInstantiateByAddress, "", "Only this address can instantiate a contract instance from the code, optional")
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
+}
