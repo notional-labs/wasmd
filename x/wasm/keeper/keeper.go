@@ -121,7 +121,7 @@ func NewKeeper(
 		bank:             NewBankCoinTransferrer(bankKeeper),
 		portKeeper:       portKeeper,
 		capabilityKeeper: capabilityKeeper,
-		messenger:        NewDefaultMessageHandler(router, msgRouter, channelKeeper, capabilityKeeper, bankKeeper, cdc, portSource),
+		messenger:        NewDefaultMessageHandler(router, msgRouter, channelKeeper, capabilityKeeper, portKeeper, connectionKeeper, bankKeeper, cdc, portSource),
 		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
 		paramSpace:       paramSpace,
 		gasRegister:      NewDefaultWasmGasRegister(),

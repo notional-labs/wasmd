@@ -241,11 +241,13 @@ func TestIBCRawPacketHandler(t *testing.T) {
 			return &capabilitytypes.Capability{}, true
 		},
 	}
-
+	
 	specs := map[string]struct {
 		srcMsg        wasmvmtypes.SendPacketMsg
 		chanKeeper    types.ChannelKeeper
 		capKeeper     types.CapabilityKeeper
+		portKeeper types.PortKeeper
+		conKeeper types.ConnectionKeeper
 		expPacketSent channeltypes.Packet
 		expErr        *sdkerrors.Error
 	}{
@@ -297,7 +299,7 @@ func TestIBCRawPacketHandler(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			capturedPacket = nil
 			// when
-			h := NewIBCRawPacketHandler(spec.chanKeeper, spec.capKeeper)
+			h := NewIBCRawPacketHandler(spec.chanKeeper, spec.capKeeper, spec.)
 			data, evts, gotErr := h.DispatchMsg(ctx, RandomAccountAddress(t), ibcPort, wasmvmtypes.CosmosMsg{IBC: &wasmvmtypes.IBCMsg{SendPacket: &spec.srcMsg}})
 			// then
 			require.True(t, spec.expErr.Is(gotErr), "exp %v but got %#+v", spec.expErr, gotErr)

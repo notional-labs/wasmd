@@ -69,4 +69,7 @@ var (
 
 	// ErrInvalidEvent error if an attribute/event from the contract is invalid
 	ErrInvalidEvent = sdkErrors.Register(DefaultCodespace, 21, "invalid event")
+
+	// ErrICAPortNotFound error if there is no existing ICA port for contract on that connection id
+	ErrICAPortNotFound = sdkErrors.Register(DefaultCodespace, 22, "no ica port for smartcontract on that connection id")
 )
