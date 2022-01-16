@@ -125,7 +125,7 @@ func (i IBCHandler) OnChanOpenTry(
 			return "", sdkerrors.Wrap(err, "claim capability")
 		}
 	}
-	return types.Version, nil
+	return counterpartyVersion, nil
 }
 
 // OnChanOpenAck implements the IBCModule interface
