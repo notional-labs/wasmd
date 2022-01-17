@@ -121,6 +121,7 @@ func NewKeeper(
 		bank:             NewBankCoinTransferrer(bankKeeper),
 		portKeeper:       portKeeper,
 		capabilityKeeper: capabilityKeeper,
+		connectionKeeper: connectionKeeper,
 		messenger:        NewDefaultMessageHandler(router, msgRouter, channelKeeper, capabilityKeeper, portKeeper, connectionKeeper, bankKeeper, cdc, portSource),
 		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
 		paramSpace:       paramSpace,
@@ -688,7 +689,7 @@ func (k Keeper) newICAPortForSmartContract(ctx sdk.Context, contractAddress stri
 
 	connectionEnd, found := k.connectionKeeper.GetConnection(ctx, connectionID)
 	if !found {
-		return "", nil
+		return "", fmt.Errorf("connection not found")
 	}
 	counterpartyConnectionID := connectionEnd.Counterparty.ConnectionId
 

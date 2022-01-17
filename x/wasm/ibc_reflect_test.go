@@ -1,15 +1,27 @@
 package wasm_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
+	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 )
+
+func NewICAChannel(path *ibctesting.Path, controllerPortID string) *ibctesting.Path {
+	path.EndpointA.ChannelConfig.PortID = controllerPortID
+	path.EndpointB.ChannelConfig.PortID = icatypes.PortID
+	path.EndpointA.ChannelConfig.Order = channeltypes.ORDERED
+	path.EndpointB.ChannelConfig.Order = channeltypes.ORDERED
+	path.EndpointA.ChannelConfig.Version = icatypes.VersionPrefix
+	path.EndpointB.ChannelConfig.Version = icatypes.VersionPrefix
+
+	return path
+}
 
 func TestIBCReflectContract(t *testing.T) {
 	// scenario:
@@ -26,23 +38,49 @@ func TestIBCReflectContract(t *testing.T) {
 	)
 	coordinator.CommitBlock(chainA, chainB)
 
-	initMsg := []byte(`{}`)
-	codeID := chainA.StoreCodeFile("./keeper/testdata/ibc_reflect_send.wasm").CodeID
-	sendContractAddr := chainA.InstantiateContract(codeID, initMsg)
+	initMsg := []byte(`{"default_timeout": 999}`)
+	codeID := chainA.StoreCodeFile("./keeper/testdata/cw20_ics20.wasm").CodeID
+	sendContractAddr := chainA.InstantiateContract(codeID, initMsg).String()
 
-	reflectID := chainB.StoreCodeFile("./keeper/testdata/reflect.wasm").CodeID
-	initMsg = wasmkeeper.IBCReflectInitMsg{
-		ReflectCodeID: reflectID,
-	}.GetBytes(t)
-	codeID = chainB.StoreCodeFile("./keeper/testdata/ibc_reflect.wasm").CodeID
-
-	reflectContractAddr := chainB.InstantiateContract(codeID, initMsg)
-	var (
-		sourcePortID      = chainA.ContractInfo(sendContractAddr).IBCPortID
-		counterpartPortID = chainB.ContractInfo(reflectContractAddr).IBCPortID
-	)
 	path := ibctesting.NewPath(chainA, chainB)
 	coordinator.SetupConnections(path)
+
+	icaMsg := &types.MsgCreateICAPortForSmartContract{
+		Sender: chainA.SenderAccount.GetAddress().String(),
+
+		ContractAddress: sendContractAddr,
+
+		ConnectionId: path.EndpointA.ConnectionID,
+	}
+	fmt.Println(path.EndpointA.ConnectionID)
+	result, err := chainA.SendMsgs(icaMsg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	protoResult := chainA.ParseSDKResultData(result)
+	// unmarshal protobuf response from data
+	var pInstResp types.MsgCreateICAPortForSmartContractResponse
+	pInstResp.Unmarshal(protoResult.Data[0].Data)
+	// icaAddress := pInstResp.IcaAddress
+	controllerPortID, _ := types.GenerateICAPortID(sendContractAddr, path.EndpointA.ConnectionID, path.EndpointB.ConnectionID)
+
+	icaPath := NewICAChannel(path, controllerPortID)
+	fmt.Println(icaPath.EndpointA.ConnectionID)
+
+	coordinator.CreateChannels(icaPath)
+
+	// chainA.App.BankKeeper
+
+	// bindPortMsg := wasmtypes.MsgCreateICAPortForSmartContract{
+	// 	ContractAddress: sendContractAddr,
+	// 	Sender: ,
+	// }
+
+	// reflectContractAddr := chainB.InstantiateContract(codeID, initMsg)
+	// var (
+	// 	sourcePortID      = chainA.ContractInfo(sendContractAddr).IBCPortID
+	// 	counterpartPortID = chainB.ContractInfo(reflectContractAddr).IBCPortID
+	// )
 
 	// flip instantiation so that we do not run into https://github.com/cosmos/cosmos-sdk/issues/8334
 
@@ -65,27 +103,27 @@ func TestIBCReflectContract(t *testing.T) {
 
 	// ensure the expected packet was prepared, and relay it
 
-	err := coordinator.RelayAndAckPendingPackets(chainA, chainB, clientA, clientB)
-	require.NoError(t, err)
+	// err := coordinator.RelayAndAckPendingPackets(chainA, chainB, clientA, clientB)
+	// require.NoError(t, err)
 
-	// let's query the source contract and make sure it registered an address
-	query := ReflectSendQueryMsg{Account: &AccountQuery{ChannelID: channelA.ID}}
-	var account AccountResponse
-	err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
-	require.NoError(t, err)
-	require.NotEmpty(t, account.RemoteAddr)
-	require.Empty(t, account.RemoteBalance)
+	// // let's query the source contract and make sure it registered an address
+	// query := ReflectSendQueryMsg{Account: &AccountQuery{ChannelID: channelA.ID}}
+	// var account AccountResponse
+	// err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
+	// require.NoError(t, err)
+	// require.NotEmpty(t, account.RemoteAddr)
+	// require.Empty(t, account.RemoteBalance)
 
-	// close channel
-	coordinator.CloseChannel(chainA, chainB, channelA, channelB)
+	// // close channel
+	// coordinator.CloseChannel(chainA, chainB, channelA, channelB)
 
-	// let's query the source contract and make sure it registered an address
-	account = AccountResponse{}
-	err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	// // let's query the source contract and make sure it registered an address
+	// account = AccountResponse{}
+	// err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
+	// require.Error(t, err)
+	// assert.Contains(t, err.Error(), "not found")
 
-	_ = clientB
+	// _ = clientB
 }
 
 type ReflectSendQueryMsg struct {

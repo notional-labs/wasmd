@@ -55,7 +55,7 @@ func (chain *TestChain) StoreCode(byteCode []byte) types.MsgStoreCodeResponse {
 	}
 	r, err := chain.SendMsgs(storeMsg)
 	require.NoError(chain.t, err)
-	protoResult := chain.parseSDKResultData(r)
+	protoResult := chain.ParseSDKResultData(r)
 	require.Len(chain.t, protoResult.Data, 1)
 	// unmarshal protobuf response from data
 	var pInstResp types.MsgStoreCodeResponse
@@ -76,7 +76,7 @@ func (c *TestChain) InstantiateContract(codeID uint64, msg []byte) sdk.AccAddres
 
 	r, err := c.SendMsgs(instantiateMsg)
 	require.NoError(c.t, err)
-	protoResult := c.parseSDKResultData(r)
+	protoResult := c.ParseSDKResultData(r)
 	require.Len(c.t, protoResult.Data, 1)
 
 	var pExecResp types.MsgInstantiateContractResponse
@@ -86,7 +86,7 @@ func (c *TestChain) InstantiateContract(codeID uint64, msg []byte) sdk.AccAddres
 	return a
 }
 
-func (c *TestChain) Execute(instantiateMsg types.MsgInstantiateContractResponse)
+// func (c *TestChain) Execute(instantiateMsg types.MsgInstantiateContractResponse)
 
 // SmartQuery This will serialize the query message and submit it to the contract.
 // The response is parsed into the provided interface.
@@ -126,7 +126,7 @@ func (chain *TestChain) SmartQuery(contractAddr string, queryMsg interface{}, re
 	return json.Unmarshal(resp.Data, response)
 }
 
-func (chain *TestChain) parseSDKResultData(r *sdk.Result) sdk.TxMsgData {
+func (chain *TestChain) ParseSDKResultData(r *sdk.Result) sdk.TxMsgData {
 	var protoResult sdk.TxMsgData
 	require.NoError(chain.t, proto.Unmarshal(r.Data, &protoResult))
 	return protoResult
