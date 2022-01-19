@@ -122,11 +122,11 @@ func NewKeeper(
 		portKeeper:       portKeeper,
 		capabilityKeeper: capabilityKeeper,
 		connectionKeeper: connectionKeeper,
-		messenger:        NewDefaultMessageHandler(router, msgRouter, channelKeeper, capabilityKeeper, portKeeper, connectionKeeper, bankKeeper, cdc, portSource),
 		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
 		paramSpace:       paramSpace,
 		gasRegister:      NewDefaultWasmGasRegister(),
 	}
+	keeper.messenger = NewDefaultMessageHandler(router, msgRouter, channelKeeper, capabilityKeeper, keeper, bankKeeper, cdc, portSource)
 	keeper.wasmVMQueryHandler = DefaultQueryPlugins(bankKeeper, stakingKeeper, distKeeper, channelKeeper, queryRouter, keeper)
 	for _, o := range opts {
 		o.apply(keeper)
@@ -707,15 +707,6 @@ func (k Keeper) newICAPortForSmartContract(ctx sdk.Context, contractAddress stri
 		return "", sdkerrors.Wrap(err, "unable to bind to newly generated portID")
 	}
 
-	contractAccAddr, err := sdk.AccAddressFromBech32(contractAddress)
-	if err != nil {
-		return "", err
-	}
-
-	prefixStoreKey := types.GetContractICAPortStorePrefix(contractAccAddr)
-	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
-	prefixStore.Set([]byte(connectionID), []byte(portID))
-
 	contractIcaAccAddr := icatypes.GenerateAddress(k.accountKeeper.GetModuleAddress(icatypes.ModuleName), portID)
 
 	contractIcaAddress := icatypes.NewInterchainAccount(authtypes.NewBaseAccountWithAddress(contractIcaAccAddr), portID).Address
@@ -1076,4 +1067,19 @@ func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAd
 		result = rsp
 	}
 	return result, nil
+}
+
+func (k *Keeper) SetChannelForContract(ctx sdk.Context, contractAccAddr sdk.AccAddress, channelID string, portID string) {
+
+	prefixStoreKey := types.GetContractIBCStorePrefix(contractAccAddr)
+	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
+	prefixStore.Set([]byte(channelID), []byte(portID))
+
+}
+
+func (k *Keeper) GetPortIdOfChannelForContract(ctx sdk.Context, contractAccAddr sdk.AccAddress, channelID string) string {
+	prefixStoreKey := types.GetContractIBCStorePrefix(contractAccAddr)
+	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
+
+	return string(prefixStore.Get([]byte(channelID)))
 }

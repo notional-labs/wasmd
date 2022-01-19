@@ -93,3 +93,8 @@ type IBCContractKeeper interface {
 	// AuthenticateCapability wraps the scopedKeeper's AuthenticateCapability function
 	AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) bool
 }
+
+type ContractIBCChannelKeeper interface {
+	SetChannelForContract(ctx sdk.Context, contractAccAddr sdk.AccAddress, channelID string, portID string)
+	GetPortIdOfChannelForContract(ctx sdk.Context, contractAccAddr sdk.AccAddress, channelID string) string
+}

@@ -35,8 +35,7 @@ func NewDefaultMessageHandler(
 	msgRouter *baseapp.MsgServiceRouter,
 	channelKeeper types.ChannelKeeper,
 	capabilityKeeper types.CapabilityKeeper,
-	portKeeper types.PortKeeper,
-	connectionKeeper types.ConnectionKeeper,
+	contractIBCChannelKeeper types.ContractIBCChannelKeeper,
 	bankKeeper types.Burner,
 	unpacker codectypes.AnyUnpacker,
 	portSource types.ICS20TransferPortSource,
@@ -48,7 +47,7 @@ func NewDefaultMessageHandler(
 	}
 	return NewMessageHandlerChain(
 		NewSDKMessageHandler(router, msgRouter, encoders),
-		NewIBCRawPacketHandler(channelKeeper, capabilityKeeper, connectionKeeper, portKeeper),
+		NewIBCRawPacketHandler(channelKeeper, capabilityKeeper, contractIBCChannelKeeper),
 		NewBurnCoinMessageHandler(bankKeeper),
 	)
 }
@@ -159,36 +158,27 @@ func (m MessageHandlerChain) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAd
 
 // IBCRawPacketHandler handels IBC.SendPacket messages which are published to an IBC channel.
 type IBCRawPacketHandler struct {
-	channelKeeper    types.ChannelKeeper
-	capabilityKeeper types.CapabilityKeeper
-	connectionKeeper types.ConnectionKeeper
-	portKeeper       types.PortKeeper
+	channelKeeper            types.ChannelKeeper
+	capabilityKeeper         types.CapabilityKeeper
+	contractIBCChannelKeeper types.ContractIBCChannelKeeper
 }
 
-func NewIBCRawPacketHandler(chk types.ChannelKeeper, cak types.CapabilityKeeper, cok types.ConnectionKeeper, portKeeper types.PortKeeper) IBCRawPacketHandler {
-	return IBCRawPacketHandler{channelKeeper: chk, capabilityKeeper: cak}
+func NewIBCRawPacketHandler(chk types.ChannelKeeper, cak types.CapabilityKeeper, cick types.ContractIBCChannelKeeper) IBCRawPacketHandler {
+	return IBCRawPacketHandler{channelKeeper: chk, capabilityKeeper: cak, contractIBCChannelKeeper: cick}
 }
 
 // DispatchMsg publishes a raw IBC packet onto the channel.
-func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
+func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, _ string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
 	if msg.IBC == nil || msg.IBC.SendPacket == nil {
 		return nil, nil, types.ErrUnknownMsg
 	}
-	connectionID := msg.IBC.SendPacket.ConnectionId
-	if connectionID != "" {
-		connectionEnd, found := h.connectionKeeper.GetConnection(ctx, connectionID)
-		if !found {
-			return nil, nil, fmt.Errorf("connection not found: %v", connectionID)
-		}
-		contractIBCPortID, err = types.GenerateICAPortID(contractAddr.String(), connectionID, connectionEnd.Counterparty.ConnectionId)
-		if !h.portKeeper.IsBound(ctx, contractIBCPortID) {
-			return nil, nil, fmt.Errorf("ICA port not bound: %v", contractIBCPortID)
-		}
-	}
+	contractIBCChannelID := msg.IBC.SendPacket.ChannelID
+
+	contractIBCPortID := h.contractIBCChannelKeeper.GetPortIdOfChannelForContract(ctx, contractAddr, contractIBCChannelID)
+
 	if contractIBCPortID == "" {
 		return nil, nil, sdkerrors.Wrapf(types.ErrUnsupportedForContract, "ibc not supported")
 	}
-	contractIBCChannelID := msg.IBC.SendPacket.ChannelID
 	if contractIBCChannelID == "" {
 		return nil, nil, sdkerrors.Wrapf(types.ErrEmpty, "ibc channel")
 	}

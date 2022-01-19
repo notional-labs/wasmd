@@ -28,12 +28,13 @@ func (Nack) Success() bool           { return false }
 func (Nack) Acknowledgement() []byte { return nil }
 
 type IBCHandler struct {
-	keeper        types.IBCContractKeeper
-	channelKeeper types.ChannelKeeper
+	keeper                   types.IBCContractKeeper
+	channelKeeper            types.ChannelKeeper
+	contractIBCChannelKeeper types.ContractIBCChannelKeeper
 }
 
-func NewIBCHandler(k types.IBCContractKeeper, ck types.ChannelKeeper) IBCHandler {
-	return IBCHandler{keeper: k, channelKeeper: ck}
+func NewIBCHandler(k types.IBCContractKeeper, ck types.ChannelKeeper, cick types.ContractIBCChannelKeeper) IBCHandler {
+	return IBCHandler{keeper: k, channelKeeper: ck, contractIBCChannelKeeper: cick}
 }
 
 // OnChanOpenInit implements the IBCModule interface
@@ -148,6 +149,7 @@ func (i IBCHandler) OnChanOpenAck(
 			CounterpartyVersion: counterpartyVersion,
 		},
 	}
+	i.contractIBCChannelKeeper.SetChannelForContract(ctx, contractAddr, channelID, portID)
 	return i.keeper.OnConnectChannel(ctx, contractAddr, msg)
 }
 
@@ -166,6 +168,7 @@ func (i IBCHandler) OnChanOpenConfirm(ctx sdk.Context, portID, channelID string)
 			Channel: toWasmVMChannel(portID, channelID, channelInfo),
 		},
 	}
+	i.contractIBCChannelKeeper.SetChannelForContract(ctx, contractAddr, channelID, portID)
 	return i.keeper.OnConnectChannel(ctx, contractAddr, msg)
 }
 

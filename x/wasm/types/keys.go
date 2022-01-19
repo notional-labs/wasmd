@@ -33,14 +33,14 @@ var (
 	ContractByCodeIDAndCreatedSecondaryIndexPrefix = []byte{0x06}
 	PinnedCodeIndexPrefix                          = []byte{0x07}
 	TXCounterPrefix                                = []byte{0x08}
-	ContractICAPortPrefix                          = []byte{0x09}
+	ContractIBCStorePrefix                         = []byte{0x09}
 
 	KeyLastCodeID     = append(SequenceKeyPrefix, []byte("lastCodeId")...)
 	KeyLastInstanceID = append(SequenceKeyPrefix, []byte("lastContractId")...)
 )
 
 //
-func GetContractICAPortStorePrefix(addr sdk.AccAddress) []byte {
+func GetContractIBCStorePrefix(addr sdk.AccAddress) []byte {
 	// addrLen := len(addr)
 	// rLen := 1 + addrLen + len(connectionIDBz)
 	// r := make([]byte, rLen)
@@ -48,7 +48,7 @@ func GetContractICAPortStorePrefix(addr sdk.AccAddress) []byte {
 	// copy(r[1:], addr)
 	// copy(r[1+addrLen:], connectionIDBz)
 
-	return append(ContractICAPortPrefix, addr...)
+	return append(ContractIBCStorePrefix, addr...)
 }
 
 // GetCodeKey constructs the key for retreiving the ID for the WASM code

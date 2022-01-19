@@ -40,7 +40,7 @@ func TestIBCReflectContract(t *testing.T) {
 
 	initMsg := []byte(`{"default_timeout": 999}`)
 	codeID := chainA.StoreCodeFile("./keeper/testdata/cw20_ics20.wasm").CodeID
-	sendContractAddr := chainA.InstantiateContract(codeID, initMsg).String()
+	sendContractAddr := chainA.InstantiateContract(codeID, initMsg)
 
 	path := ibctesting.NewPath(chainA, chainB)
 	coordinator.SetupConnections(path)
@@ -48,7 +48,7 @@ func TestIBCReflectContract(t *testing.T) {
 	icaMsg := &types.MsgCreateICAPortForSmartContract{
 		Sender: chainA.SenderAccount.GetAddress().String(),
 
-		ContractAddress: sendContractAddr,
+		ContractAddress: sendContractAddr.String(),
 
 		ConnectionId: path.EndpointA.ConnectionID,
 	}
@@ -61,14 +61,16 @@ func TestIBCReflectContract(t *testing.T) {
 	// unmarshal protobuf response from data
 	var pInstResp types.MsgCreateICAPortForSmartContractResponse
 	pInstResp.Unmarshal(protoResult.Data[0].Data)
-	// icaAddress := pInstResp.IcaAddress
-	controllerPortID, _ := types.GenerateICAPortID(sendContractAddr, path.EndpointA.ConnectionID, path.EndpointB.ConnectionID)
-
+	icaAddress := pInstResp.IcaAddress
+	controllerPortID, _ := types.GenerateICAPortID(sendContractAddr.String(), path.EndpointA.ConnectionID, path.EndpointB.ConnectionID)
 	icaPath := NewICAChannel(path, controllerPortID)
 	fmt.Println(icaPath.EndpointA.ConnectionID)
 
 	coordinator.CreateChannels(icaPath)
 
+	ctxB := chainB.GetContext()
+	fmt.Println(chainB.App.ICAHostKeeper.GetInterchainAccountAddress(ctxB, "wasm.0.0.cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr"))
+	fmt.Println(icaAddress)
 	// chainA.App.BankKeeper
 
 	// bindPortMsg := wasmtypes.MsgCreateICAPortForSmartContract{
