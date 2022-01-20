@@ -112,7 +112,7 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 			return nil, err
 		}
 		if msg.ReplyOn == wasmvmtypes.ReplyNever || (msg.ReplyOn == wasmvmtypes.ReplyError && err == nil) {
-			continue
+			return data[0], nil
 		}
 
 		// otherwise, we create a SubcallResult and pass it into the calling contract
@@ -131,6 +131,7 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 				},
 			}
 		} else {
+
 			result = wasmvmtypes.SubcallResult{
 				Err: err.Error(),
 			}

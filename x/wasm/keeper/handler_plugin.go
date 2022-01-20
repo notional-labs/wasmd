@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -208,7 +209,9 @@ func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAd
 		convertWasmIBCTimeoutHeightToCosmosHeight(msg.IBC.SendPacket.Timeout.Block),
 		msg.IBC.SendPacket.Timeout.Timestamp,
 	)
-	return nil, nil, h.channelKeeper.SendPacket(ctx, channelCap, packet)
+	bz, _ := packet.Marshal()
+	fmt.Println(hex.EncodeToString(msg.IBC.SendPacket.Data))
+	return nil, [][]byte{bz}, h.channelKeeper.SendPacket(ctx, channelCap, packet)
 }
 
 var _ Messenger = MessageHandlerFunc(nil)

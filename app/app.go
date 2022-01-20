@@ -343,12 +343,13 @@ func NewWasmApp(
 	scopedICAControllerKeeper := app.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
 	scopedICAHostKeeper := app.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
 	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasm.ModuleName)
-	app.CapabilityKeeper.Seal()
 
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// not replicate if you do not need to test core IBC or light clients.
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(ibcmock.ModuleName)
 	scopedICAMockKeeper := app.CapabilityKeeper.ScopeToModule(ibcmock.ModuleName + icacontrollertypes.SubModuleName)
+
+	app.CapabilityKeeper.Seal()
 
 	// add keepers
 	app.AccountKeeper = authkeeper.NewAccountKeeper(
@@ -477,21 +478,7 @@ func NewWasmApp(
 	icaControllerIBCModule := icacontroller.NewIBCModule(app.ICAControllerKeeper, icaAuthModule)
 	icaHostIBCModule := icahost.NewIBCModule(app.ICAHostKeeper)
 
-	// Create static IBC router, add app routes, then set and seal it
-	ibcRouter := porttypes.NewRouter()
-	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerIBCModule).
-		AddRoute(icahosttypes.SubModuleName, icaHostIBCModule).
-		AddRoute(ibcmock.ModuleName+icacontrollertypes.SubModuleName, icaControllerIBCModule). // ica with mock auth module stack route to ica (top level of middleware stack)
-		AddRoute(ibctransfertypes.ModuleName, transferIBCModule).
-		AddRoute(ibcmock.ModuleName, mockIBCModule)
-	app.IBCKeeper.SetRouter(ibcRouter)
-
 	// // Create static IBC router, add transfer route, then set and seal it
-	// ibcRouter := porttypes.NewRouter()
-	// ibcRouter.AddRoute(
-	// 	ibctransfertypes.ModuleName,
-	// 	transferModule,
-	// )
 
 	// create evidence keeper with router
 	evidenceKeeper := evidencekeeper.NewKeeper(
@@ -516,9 +503,9 @@ func NewWasmApp(
 		app.BankKeeper,
 		app.StakingKeeper,
 		app.DistrKeeper,
-		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
-		app.IBCKeeper.ConnectionKeeper,
+		&app.IBCKeeper.ConnectionKeeper,
 		scopedWasmKeeper,
 		app.TransferKeeper,
 		app.Router(),
@@ -530,12 +517,20 @@ func NewWasmApp(
 		wasmOpts...,
 	)
 
+	// Create static IBC router, add app routes, then set and seal it
+	ibcRouter := porttypes.NewRouter()
+	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerIBCModule).
+		AddRoute(icahosttypes.SubModuleName, icaHostIBCModule).
+		AddRoute(ibcmock.ModuleName+icacontrollertypes.SubModuleName, icaControllerIBCModule). // ica with mock auth module stack route to ica (top level of middleware stack)
+		AddRoute(ibctransfertypes.ModuleName, transferIBCModule).
+		AddRoute(ibcmock.ModuleName, mockIBCModule).
+		AddRoute(wasm.ModuleName, wasm.NewIBCHandler(app.WasmKeeper, app.IBCKeeper.ChannelKeeper, &app.WasmKeeper))
+	app.IBCKeeper.SetRouter(ibcRouter)
+
 	// The gov proposal types can be individually enabled
 	if len(enabledProposals) != 0 {
 		govRouter.AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(app.WasmKeeper, enabledProposals))
 	}
-	// ibcRouter.AddRoute(wasm.ModuleName, wasm.NewIBCHandler(app.WasmKeeper, app.IBCKeeper.ChannelKeeper))
-	// app.IBCKeeper.SetRouter(ibcRouter)
 
 	app.GovKeeper = govkeeper.NewKeeper(
 		appCodec,
@@ -633,6 +628,7 @@ func NewWasmApp(
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
 	app.configurator = module.NewConfigurator(app.AppCodec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
+	app.mm.RegisterServices(app.configurator)
 
 	// add test gRPC service for testing gRPC queries in isolation
 	// testdata.RegisterTestServiceServer(app.GRPCQueryRouter(), testdata.QueryImpl{}) // TODO: this is testdata !!!!

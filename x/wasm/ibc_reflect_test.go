@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
+	keeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-
-	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
 	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+	osmosisapp "github.com/osmosis-labs/osmosis/app"
 )
 
 func NewICAChannel(path *ibctesting.Path, controllerPortID string) *ibctesting.Path {
@@ -19,6 +21,17 @@ func NewICAChannel(path *ibctesting.Path, controllerPortID string) *ibctesting.P
 	path.EndpointB.ChannelConfig.Order = channeltypes.ORDERED
 	path.EndpointA.ChannelConfig.Version = icatypes.VersionPrefix
 	path.EndpointB.ChannelConfig.Version = icatypes.VersionPrefix
+
+	return path
+}
+
+func NewIBCChannel(path *ibctesting.Path, wasmTransferPortID string) *ibctesting.Path {
+	path.EndpointA.ChannelConfig.PortID = wasmTransferPortID
+	path.EndpointB.ChannelConfig.PortID = "transfer"
+	path.EndpointA.ChannelConfig.Order = channeltypes.UNORDERED
+	path.EndpointB.ChannelConfig.Order = channeltypes.UNORDERED
+	path.EndpointA.ChannelConfig.Version = "ics20-1"
+	path.EndpointB.ChannelConfig.Version = "ics20-1"
 
 	return path
 }
@@ -43,7 +56,9 @@ func TestIBCReflectContract(t *testing.T) {
 	sendContractAddr := chainA.InstantiateContract(codeID, initMsg)
 
 	path := ibctesting.NewPath(chainA, chainB)
+	path2 := ibctesting.NewPath(chainA, chainB)
 	coordinator.SetupConnections(path)
+	coordinator.SetupConnections(path2)
 
 	icaMsg := &types.MsgCreateICAPortForSmartContract{
 		Sender: chainA.SenderAccount.GetAddress().String(),
@@ -65,67 +80,75 @@ func TestIBCReflectContract(t *testing.T) {
 	controllerPortID, _ := types.GenerateICAPortID(sendContractAddr.String(), path.EndpointA.ConnectionID, path.EndpointB.ConnectionID)
 	icaPath := NewICAChannel(path, controllerPortID)
 	fmt.Println(icaPath.EndpointA.ConnectionID)
-
+	fmt.Println(sendContractAddr.String())
 	coordinator.CreateChannels(icaPath)
 
+	// ctxA := chainA.GetContext()
 	ctxB := chainB.GetContext()
 	fmt.Println(chainB.App.ICAHostKeeper.GetInterchainAccountAddress(ctxB, "wasm.0.0.cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr"))
 	fmt.Println(icaAddress)
-	// chainA.App.BankKeeper
 
-	// bindPortMsg := wasmtypes.MsgCreateICAPortForSmartContract{
-	// 	ContractAddress: sendContractAddr,
-	// 	Sender: ,
-	// }
+	q := []byte(`{"channel":{"id":"channel-0"}}`)
+	res, err := chainA.SmartQuery("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", q)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println(string(res))
 
-	// reflectContractAddr := chainB.InstantiateContract(codeID, initMsg)
-	// var (
-	// 	sourcePortID      = chainA.ContractInfo(sendContractAddr).IBCPortID
-	// 	counterpartPortID = chainB.ContractInfo(reflectContractAddr).IBCPortID
-	// )
+	ibcPortID := keeper.PortIDForContract(sendContractAddr)
+	ibcPath := NewIBCChannel(path2, ibcPortID)
+	coordinator.CreateChannels(ibcPath)
 
-	// flip instantiation so that we do not run into https://github.com/cosmos/cosmos-sdk/issues/8334
+	icaAddr := "cosmos1nqtakv2fxs9mdgm98u2hzh3gj3xcn6a9599pzqnk9m2cf2haauqsrwyh79"
+	ibcTx := []byte(`{"transfer": {"channel": "channel-1","remote_address": "cosmos1nqtakv2fxs9mdgm98u2hzh3gj3xcn6a9599pzqnk9m2cf2haauqsrwyh79"}}`)
 
-	// TODO: query both contracts directly to ensure they have registered the proper connection
-	// (and the chainB has created a reflect contract)
+	res = chainA.ExecuteContract(sendContractAddr.String(), ibcTx)
 
-	// there should be one packet to relay back and forth (whoami)
-	// TODO: how do I find the packet that was previously sent by the smart contract?
-	// Coordinator.RecvPacket requires channeltypes.Packet as input?
-	// Given the source (portID, channelID), we should be able to count how many packets are pending, query the data
-	// and submit them to the other side (same with acks). This is what the real relayer does. I guess the test framework doesn't?
+	pack := &channeltypes.Packet{}
+	err = pack.Unmarshal(res)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-	// Update: I dug through the code, especially channel.Keeper.SendPacket, and it only writes a commitment
-	// only writes I see: https://github.com/cosmos/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L115-L116
-	// commitment is hashed packet: https://github.com/cosmos/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/types/packet.go#L14-L34
-	// how is the relayer supposed to get the original packet data??
-	// eg. ibctransfer doesn't store the packet either: https://github.com/cosmos/cosmos-sdk/blob/master/x/ibc/applications/transfer/keeper/relay.go#L145-L162
-	// ... or I guess the original packet data is only available in the event logs????
-	// https://github.com/cosmos/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L121-L132
+	ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
-	// ensure the expected packet was prepared, and relay it
+	// path2.EndpointA.UpdateClient()
+	// path2.EndpointB.UpdateClient()
+	// coordinator.CommitBlock(chainB)
+	// coordinator.CommitBlock(chainA)
+	// path2.EndpointA.UpdateClient()
+	// path2.EndpointB.UpdateClient()
+	// coordinator.CommitBlock(chainB)
+	// coordinator.CommitBlock(chainA)
 
-	// err := coordinator.RelayAndAckPendingPackets(chainA, chainB, clientA, clientB)
-	// require.NoError(t, err)
+	err = path2.RelayPacket(*pack, ack.Acknowledgement())
+	if err != nil {
+		panic(err)
+	}
+	osmosisapp.Setup()
+	icaAccAddr, _ := sdk.AccAddressFromBech32(icaAddr)
 
-	// // let's query the source contract and make sure it registered an address
-	// query := ReflectSendQueryMsg{Account: &AccountQuery{ChannelID: channelA.ID}}
-	// var account AccountResponse
-	// err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
-	// require.NoError(t, err)
-	// require.NotEmpty(t, account.RemoteAddr)
-	// require.Empty(t, account.RemoteBalance)
+	fmt.Println(chainB.App.BankKeeper.GetAllBalances(ctxB, icaAccAddr))
+	icaTx := []byte(`{"swap" :{"in_denom": "ibc/3C3D7B3BE4ECC85A0E5B52A3AEC3B7DFC2AA9CA47C37821E57020D6807043BE9", "in_amount": "9", "channel": "channel-0", "remote_address": "test", "pool_id": 1, "exact_amount_out": "9", "out_denom": "uosmo"}}`)
 
-	// // close channel
-	// coordinator.CloseChannel(chainA, chainB, channelA, channelB)
+	res = chainA.ExecuteContract(sendContractAddr.String(), icaTx)
 
-	// // let's query the source contract and make sure it registered an address
-	// account = AccountResponse{}
-	// err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
-	// require.Error(t, err)
-	// assert.Contains(t, err.Error(), "not found")
+	ack = channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
-	// _ = clientB
+	err = path.RelayPacket(*UmarshalPacket(res), ack.Acknowledgement())
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func UmarshalPacket(bz []byte) *channeltypes.Packet {
+	pack := &channeltypes.Packet{}
+	err := pack.Unmarshal(bz)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return pack
 }
 
 type ReflectSendQueryMsg struct {

@@ -129,8 +129,17 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	totalSupply := sdk.NewCoins()
 	for _, b := range balances {
 		// add genesis acc tokens and delegated tokens to total supply
-		totalSupply = totalSupply.Add(b.Coins.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))...)
+		totalSupply = totalSupply.Add(b.Coins...)
 	}
+	totalSupply = totalSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))
+
+	fmt.Println(totalSupply)
+	bondPool := banktypes.Balance{
+		Address: "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh",
+		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt)),
+	}
+
+	balances = append(balances, []banktypes.Balance{bondPool}...)
 
 	// update total supply
 	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{})

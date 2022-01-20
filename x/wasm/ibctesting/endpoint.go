@@ -308,6 +308,7 @@ func (endpoint *Endpoint) ChanOpenTry() error {
 
 	// update version to selected app version
 	// NOTE: this update must be performed after the endpoint channelID is set
+
 	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
 
 	return nil

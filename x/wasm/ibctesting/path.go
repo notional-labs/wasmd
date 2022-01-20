@@ -44,6 +44,11 @@ func (path *Path) RelayPacket(packet channeltypes.Packet, ack []byte) error {
 
 		// packet found, relay from A to B
 		path.EndpointB.UpdateClient()
+		path.EndpointB.UpdateClient()
+		path.EndpointB.UpdateClient()
+		path.EndpointB.UpdateClient()
+		path.EndpointB.UpdateClient()
+		path.EndpointB.UpdateClient()
 
 		if err := path.EndpointB.RecvPacket(packet); err != nil {
 			return err

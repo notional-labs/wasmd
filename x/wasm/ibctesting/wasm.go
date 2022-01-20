@@ -3,7 +3,6 @@ package ibctesting
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -91,19 +90,15 @@ func (c *TestChain) InstantiateContract(codeID uint64, msg []byte) sdk.AccAddres
 // SmartQuery This will serialize the query message and submit it to the contract.
 // The response is parsed into the provided interface.
 // Usage: SmartQuery(addr, QueryMsg{Foo: 1}, &response)
-func (chain *TestChain) SmartQuery(contractAddr string, queryMsg interface{}, response interface{}) error {
-	msg, err := json.Marshal(queryMsg)
-	if err != nil {
-		return err
-	}
+func (chain *TestChain) SmartQuery(contractAddr string, queryMsg []byte) ([]byte, error) {
 
 	req := types.QuerySmartContractStateRequest{
 		Address:   contractAddr,
-		QueryData: msg,
+		QueryData: queryMsg,
 	}
 	reqBin, err := proto.Marshal(&req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: what is the query?
@@ -113,17 +108,38 @@ func (chain *TestChain) SmartQuery(contractAddr string, queryMsg interface{}, re
 	})
 
 	if res.Code != 0 {
-		return fmt.Errorf("query failed: (%d) %s", res.Code, res.Log)
+		return nil, fmt.Errorf("query failed: (%d) %s", res.Code, res.Log)
 	}
 
 	// unpack protobuf
 	var resp types.QuerySmartContractStateResponse
 	err = proto.Unmarshal(res.Value, &resp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// unpack json content
-	return json.Unmarshal(resp.Data, response)
+	return resp.Data, nil
+}
+
+func (c *TestChain) ExecuteContract(contractAddr string, msg []byte) []byte {
+	executeMsg := &types.MsgExecuteContract{
+		Sender:   c.SenderAccount.GetAddress().String(),
+		Contract: contractAddr,
+		Msg:      msg,
+		Funds:    sdk.Coins{TestCoin},
+	}
+
+	r, err := c.SendMsgs(executeMsg)
+	if err != nil {
+		panic(err)
+	}
+	require.NoError(c.t, err)
+	protoResult := c.ParseSDKResultData(r)
+	require.Len(c.t, protoResult.Data, 1)
+
+	var pExecResp types.MsgExecuteContractResponse
+	require.NoError(c.t, pExecResp.Unmarshal(protoResult.Data[0].Data))
+	return pExecResp.Data
 }
 
 func (chain *TestChain) ParseSDKResultData(r *sdk.Result) sdk.TxMsgData {
