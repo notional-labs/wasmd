@@ -6,8 +6,11 @@ import (
 	"testing"
 	"time"
 
+	wasmapp "github.com/CosmWasm/wasmd/app"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	osmosisapp "github.com/osmosis-labs/osmosis/app"
 )
 
 const ChainIDPrefix = "testchain"
@@ -27,20 +30,24 @@ type Coordinator struct {
 }
 
 // NewCoordinator initializes Coordinator with N TestChain's
-func NewCoordinator(t *testing.T, n int) *Coordinator {
+func NewCoordinator(t *testing.T) (*Coordinator, *wasmapp.WasmApp, *osmosisapp.OsmosisApp) {
 	chains := make(map[string]*TestChain)
 	coord := &Coordinator{
 		t:           t,
 		CurrentTime: globalStartTime,
 	}
 
-	for i := 0; i < n; i++ {
-		chainID := GetChainID(i)
-		chains[chainID] = NewTestChain(t, coord, chainID)
-	}
+	chainID := GetChainID(0)
+	var wasm *wasmapp.WasmApp
+	var osmosis *osmosisapp.OsmosisApp
+	chains[chainID], wasm = NewTestWasmChain(t, coord, chainID)
+
+	chainID = GetChainID(1)
+	chains[chainID], osmosis = NewTestOsmoChain(t, coord, chainID)
+
 	coord.Chains = chains
 
-	return coord
+	return coord, wasm, osmosis
 }
 
 // IncrementTime iterates through all the TestChain's and increments their current header time

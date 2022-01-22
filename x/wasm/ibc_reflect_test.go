@@ -9,9 +9,9 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
 	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
 	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
-	osmosisapp "github.com/osmosis-labs/osmosis/app"
 )
 
 func NewICAChannel(path *ibctesting.Path, controllerPortID string) *ibctesting.Path {
@@ -45,9 +45,9 @@ func TestIBCReflectContract(t *testing.T) {
 	//  "ibc_reflect" sends a submessage to "reflect" which is returned as submessage.
 
 	var (
-		coordinator = ibctesting.NewCoordinator(t, 2)
-		chainA      = coordinator.GetChain(ibctesting.GetChainID(0))
-		chainB      = coordinator.GetChain(ibctesting.GetChainID(1))
+		coordinator, appA, appB = ibctesting.NewCoordinator(t)
+		chainA                  = coordinator.GetChain(ibctesting.GetChainID(0))
+		chainB                  = coordinator.GetChain(ibctesting.GetChainID(1))
 	)
 	coordinator.CommitBlock(chainA, chainB)
 
@@ -85,7 +85,7 @@ func TestIBCReflectContract(t *testing.T) {
 
 	// ctxA := chainA.GetContext()
 	ctxB := chainB.GetContext()
-	fmt.Println(chainB.App.ICAHostKeeper.GetInterchainAccountAddress(ctxB, "wasm.0.0.cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr"))
+	fmt.Println(appB.ICAHostKeeper.GetInterchainAccountAddress(ctxB, "wasm.0.0.cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr"))
 	fmt.Println(icaAddress)
 
 	q := []byte(`{"channel":{"id":"channel-0"}}`)
@@ -103,7 +103,7 @@ func TestIBCReflectContract(t *testing.T) {
 	ibcTx := []byte(`{"transfer": {"channel": "channel-1","remote_address": "cosmos1nqtakv2fxs9mdgm98u2hzh3gj3xcn6a9599pzqnk9m2cf2haauqsrwyh79"}}`)
 
 	res = chainA.ExecuteContract(sendContractAddr.String(), ibcTx)
-
+	appA.GetBaseApp()
 	pack := &channeltypes.Packet{}
 	err = pack.Unmarshal(res)
 	if err != nil {
@@ -125,16 +125,26 @@ func TestIBCReflectContract(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	osmosisapp.Setup()
 	icaAccAddr, _ := sdk.AccAddressFromBech32(icaAddr)
 
-	fmt.Println(chainB.App.BankKeeper.GetAllBalances(ctxB, icaAccAddr))
+	fmt.Println(appB.BankKeeper.GetAllBalances(ctxB, icaAccAddr))
 	icaTx := []byte(`{"swap" :{"in_denom": "ibc/3C3D7B3BE4ECC85A0E5B52A3AEC3B7DFC2AA9CA47C37821E57020D6807043BE9", "in_amount": "9", "channel": "channel-0", "remote_address": "test", "pool_id": 1, "exact_amount_out": "9", "out_denom": "uosmo"}}`)
 
 	res = chainA.ExecuteContract(sendContractAddr.String(), icaTx)
 
 	ack = channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
+	params := icahosttypes.Params{
+		HostEnabled: true,
+		AllowMessages: []string{"/osmosis.gamm.v1beta1.MsgSwapExactAmountIn",
+			"/osmosis.gamm.v1beta1.MsgJoinPool",
+			"/cosmos.bank.v1beta1.MsgSend",
+		},
+	}
+	appB.ICAHostKeeper.SetParams(chainB.GetContext(), params)
+	appB.Commit()
+	chainB.NextBlock()
+	fmt.Println(appB.ICAHostKeeper.GetAllowMessages(chainB.GetContext()))
 	err = path.RelayPacket(*UmarshalPacket(res), ack.Acknowledgement())
 	if err != nil {
 		panic(err)

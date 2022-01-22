@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -210,7 +209,6 @@ func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAd
 		msg.IBC.SendPacket.Timeout.Timestamp,
 	)
 	bz, _ := packet.Marshal()
-	fmt.Println(hex.EncodeToString(msg.IBC.SendPacket.Data))
 	return nil, [][]byte{bz}, h.channelKeeper.SendPacket(ctx, channelCap, packet)
 }
 

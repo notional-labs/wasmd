@@ -13,7 +13,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/rand"
 
-	wasmd "github.com/CosmWasm/wasmd/app"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
@@ -34,14 +33,14 @@ func (chain *TestChain) SeedNewContractInstance() sdk.AccAddress {
 
 func (chain *TestChain) StoreCodeFile(filename string) types.MsgStoreCodeResponse {
 	wasmCode, err := ioutil.ReadFile(filename)
-	require.NoError(chain.t, err)
+	require.NoError(chain.T, err)
 	if strings.HasSuffix(filename, "wasm") { // compress for gas limit
 		var buf bytes.Buffer
 		gz := gzip.NewWriter(&buf)
 		_, err := gz.Write(wasmCode)
-		require.NoError(chain.t, err)
+		require.NoError(chain.T, err)
 		err = gz.Close()
-		require.NoError(chain.t, err)
+		require.NoError(chain.T, err)
 		wasmCode = buf.Bytes()
 	}
 	return chain.StoreCode(wasmCode)
@@ -53,13 +52,13 @@ func (chain *TestChain) StoreCode(byteCode []byte) types.MsgStoreCodeResponse {
 		WASMByteCode: byteCode,
 	}
 	r, err := chain.SendMsgs(storeMsg)
-	require.NoError(chain.t, err)
+	require.NoError(chain.T, err)
 	protoResult := chain.ParseSDKResultData(r)
-	require.Len(chain.t, protoResult.Data, 1)
+	require.Len(chain.T, protoResult.Data, 1)
 	// unmarshal protobuf response from data
 	var pInstResp types.MsgStoreCodeResponse
-	require.NoError(chain.t, pInstResp.Unmarshal(protoResult.Data[0].Data))
-	require.NotEmpty(chain.t, pInstResp.CodeID)
+	require.NoError(chain.T, pInstResp.Unmarshal(protoResult.Data[0].Data))
+	require.NotEmpty(chain.T, pInstResp.CodeID)
 	return pInstResp
 }
 
@@ -74,14 +73,14 @@ func (c *TestChain) InstantiateContract(codeID uint64, msg []byte) sdk.AccAddres
 	}
 
 	r, err := c.SendMsgs(instantiateMsg)
-	require.NoError(c.t, err)
+	require.NoError(c.T, err)
 	protoResult := c.ParseSDKResultData(r)
-	require.Len(c.t, protoResult.Data, 1)
+	require.Len(c.T, protoResult.Data, 1)
 
 	var pExecResp types.MsgInstantiateContractResponse
-	require.NoError(c.t, pExecResp.Unmarshal(protoResult.Data[0].Data))
+	require.NoError(c.T, pExecResp.Unmarshal(protoResult.Data[0].Data))
 	a, err := sdk.AccAddressFromBech32(pExecResp.Address)
-	require.NoError(c.t, err)
+	require.NoError(c.T, err)
 	return a
 }
 
@@ -133,27 +132,17 @@ func (c *TestChain) ExecuteContract(contractAddr string, msg []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
-	require.NoError(c.t, err)
+	require.NoError(c.T, err)
 	protoResult := c.ParseSDKResultData(r)
-	require.Len(c.t, protoResult.Data, 1)
+	require.Len(c.T, protoResult.Data, 1)
 
 	var pExecResp types.MsgExecuteContractResponse
-	require.NoError(c.t, pExecResp.Unmarshal(protoResult.Data[0].Data))
+	require.NoError(c.T, pExecResp.Unmarshal(protoResult.Data[0].Data))
 	return pExecResp.Data
 }
 
 func (chain *TestChain) ParseSDKResultData(r *sdk.Result) sdk.TxMsgData {
 	var protoResult sdk.TxMsgData
-	require.NoError(chain.t, proto.Unmarshal(r.Data, &protoResult))
+	require.NoError(chain.T, proto.Unmarshal(r.Data, &protoResult))
 	return protoResult
-}
-
-// ContractInfo is a helper function to returns the ContractInfo for the given contract address
-func (chain *TestChain) ContractInfo(contractAddr sdk.AccAddress) *types.ContractInfo {
-	return chain.TestSupport().WasmKeeper().GetContractInfo(chain.GetContext(), contractAddr)
-}
-
-// TestSupport provides access to package private keepers.
-func (chain *TestChain) TestSupport() *wasmd.TestSupport {
-	return wasmd.NewTestSupport(chain.t, &chain.App)
 }

@@ -59,6 +59,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25 // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
@@ -126,7 +127,9 @@ require (
 )
 
 replace (
+	github.com/cosmos/cosmos-sdk => github.com/osmosis-labs/cosmos-sdk v0.43.0-rc3.0.20211209072213-711e78b4f6b4
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+	github.com/osmosis-labs/bech32-ibc => github.com/notional-labs/bech32-ibc v0.0.0-20220120004826-f6df3ef55ed4
 	github.com/osmosis-labs/osmosis => github.com/notional-labs/osmosis v1.0.3-0.20220120020833-4e64945423e1
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
