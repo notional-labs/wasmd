@@ -36,6 +36,16 @@ func NewIBCChannel(path *ibctesting.Path, wasmTransferPortID string) *ibctesting
 	return path
 }
 
+func MakeBalancesString(balances map[string]uint64) string {
+	balancesString := `"balances" : [ `
+	for address, amount := range balances {
+		balanceString := fmt.Sprintf(`{"amount" : %d,"address": "%s"},`, amount, address)
+		balancesString += balanceString
+	}
+	l := len(balancesString)
+	return balancesString[:l-1] + "]"
+}
+
 func TestIBCReflectContract(t *testing.T) {
 	// scenario:
 	//  chain A: ibc_reflect_send.wasm
@@ -51,7 +61,18 @@ func TestIBCReflectContract(t *testing.T) {
 	)
 	coordinator.CommitBlock(chainA, chainB)
 
-	initMsg := []byte(`{"default_timeout": 999}`)
+	balances := map[string]uint64{
+
+		"channel-1/swap":      99999999,
+		"channel-1/join-pool": 99999999,
+		"channel-2/swap":      99999999,
+		"channel-2/join-pool": 99999999,
+	}
+
+	balances[chainA.SenderAccount.GetAddress().String()] = 999999999
+
+	initMsg := []byte(fmt.Sprintf(`{"default_timeout": 999, %s}`, MakeBalancesString(balances)))
+	fmt.Println(string(initMsg))
 	codeID := chainA.StoreCodeFile("./keeper/testdata/cw20_ics20.wasm").CodeID
 	sendContractAddr := chainA.InstantiateContract(codeID, initMsg)
 
@@ -128,7 +149,7 @@ func TestIBCReflectContract(t *testing.T) {
 	icaAccAddr, _ := sdk.AccAddressFromBech32(icaAddr)
 
 	fmt.Println(appB.BankKeeper.GetAllBalances(ctxB, icaAccAddr))
-	icaTx := []byte(`{"swap" :{"in_denom": "ibc/3C3D7B3BE4ECC85A0E5B52A3AEC3B7DFC2AA9CA47C37821E57020D6807043BE9", "in_amount": "9", "channel": "channel-0", "remote_address": "test", "pool_id": 1, "exact_amount_out": "9", "out_denom": "uosmo"}}`)
+	icaTx := []byte(`{"swap" :{"": }}`)
 
 	res = chainA.ExecuteContract(sendContractAddr.String(), icaTx)
 
