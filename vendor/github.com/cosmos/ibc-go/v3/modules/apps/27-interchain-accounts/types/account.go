@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	fmt "fmt"
 	"strings"
 
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -35,7 +34,6 @@ type interchainAccountPretty struct {
 // GenerateAddress returns an sdk.AccAddress derived using the provided module account address and port identifier.
 // The sdk.AccAddress returned is a sub-address of the module account, using the controller chain's port identifier as the derivation key
 func GenerateAddress(moduleAccAddr sdk.AccAddress, portID string) sdk.AccAddress {
-	fmt.Println(len(sdkaddress.Derive(moduleAccAddr, []byte(portID))))
 	return sdk.AccAddress(sdkaddress.Derive(moduleAccAddr, []byte(portID)))
 }
 

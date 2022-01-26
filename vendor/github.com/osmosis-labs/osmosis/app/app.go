@@ -17,6 +17,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	// "github.com/cosmos/cosmos-sdk/x/bank"
 	paramproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -43,6 +44,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
+
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -615,6 +617,7 @@ func NewOsmosisApp(
 		epochs.NewAppModule(appCodec, app.EpochsKeeper),
 		bech32ibc.NewAppModule(appCodec, app.Bech32IBCKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
+		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
 		transferModule,
 		icaModule,
 		mockModule,

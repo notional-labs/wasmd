@@ -43,7 +43,6 @@ func GenerateOrBroadcastTxWithFactory(clientCtx client.Context, txf Factory, msg
 			return err
 		}
 	}
-	fmt.Println("passed")
 
 	if clientCtx.GenerateOnly {
 		return GenerateTx(clientCtx, txf, msgs...)
@@ -139,7 +138,6 @@ func BroadcastTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("passed")
 
 	// broadcast to a Tendermint node
 	res, err := clientCtx.BroadcastTx(txBytes)

@@ -133,14 +133,12 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	}
 	totalSupply = totalSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))
 
-	fmt.Println(totalSupply)
 	bondPool := banktypes.Balance{
 		Address: "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh",
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt)),
 	}
 
 	balances = append(balances, []banktypes.Balance{bondPool}...)
-	fmt.Println(balances)
 	// update total supply
 	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{})
 	genesisState[banktypes.ModuleName] = app.appCodec.MustMarshalJSON(bankGenesis)

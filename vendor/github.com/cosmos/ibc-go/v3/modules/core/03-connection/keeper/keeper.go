@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -72,7 +70,6 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 	}
 
 	var connection types.ConnectionEnd
-	fmt.Println("checkpoint")
 	k.cdc.MustUnmarshal(bz, &connection)
 
 	return connection, true

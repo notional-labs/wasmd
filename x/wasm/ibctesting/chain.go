@@ -169,7 +169,6 @@ func NewTestWasmChain(t *testing.T, coord *Coordinator, chainID string) (*TestCh
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
 	}
 	var emptyWasmOpts []wasm.Option = nil
-	fmt.Println(acc.GetAddress().String())
 	app := wasmapp.SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, emptyWasmOpts, balances)
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -664,7 +663,6 @@ func SetupOsmoAppWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, g
 	}
 	totalSupply = totalSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))
 
-	fmt.Println(totalSupply)
 	bondPool := banktypes.Balance{
 		Address: "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh",
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt)),
