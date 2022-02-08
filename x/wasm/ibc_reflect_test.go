@@ -8,7 +8,6 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	keeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
-	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
 	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
@@ -17,26 +16,31 @@ import (
 	gammtypes "github.com/osmosis-labs/osmosis/x/gamm/types"
 )
 
-func SetupICAChannel(path *ibctesting.Path, controllerPortID string) *ibctesting.Path {
-	path.EndpointA.ChannelConfig.PortID = controllerPortID
-	path.EndpointB.ChannelConfig.PortID = icatypes.PortID
-	path.EndpointA.ChannelConfig.Order = channeltypes.ORDERED
-	path.EndpointB.ChannelConfig.Order = channeltypes.ORDERED
-	path.EndpointA.ChannelConfig.Version = icatypes.VersionPrefix
-	path.EndpointB.ChannelConfig.Version = icatypes.VersionPrefix
+var (
+	ContractAddr    sdk.AccAddress
+	ContractIcaAddr sdk.AccAddress
+)
 
-	return path
+func SetupICAChannel(path1 *ibctesting.Path, controllerPortID string) *ibctesting.Path {
+	path1.EndpointA.ChannelConfig.PortID = controllerPortID
+	path1.EndpointB.ChannelConfig.PortID = icatypes.PortID
+	path1.EndpointA.ChannelConfig.Order = channeltypes.ORDERED
+	path1.EndpointB.ChannelConfig.Order = channeltypes.ORDERED
+	path1.EndpointA.ChannelConfig.Version = icatypes.VersionPrefix
+	path1.EndpointB.ChannelConfig.Version = icatypes.VersionPrefix
+
+	return path1
 }
 
-func SetupIBCChannel(path *ibctesting.Path, wasmTransferPortID string) *ibctesting.Path {
-	path.EndpointA.ChannelConfig.PortID = wasmTransferPortID
-	path.EndpointB.ChannelConfig.PortID = "transfer"
-	path.EndpointA.ChannelConfig.Order = channeltypes.UNORDERED
-	path.EndpointB.ChannelConfig.Order = channeltypes.UNORDERED
-	path.EndpointA.ChannelConfig.Version = "ics20-1"
-	path.EndpointB.ChannelConfig.Version = "ics20-1"
+func SetupIBCChannel(path1 *ibctesting.Path, wasmTransferPortID string) *ibctesting.Path {
+	path1.EndpointA.ChannelConfig.PortID = wasmTransferPortID
+	path1.EndpointB.ChannelConfig.PortID = "transfer"
+	path1.EndpointA.ChannelConfig.Order = channeltypes.UNORDERED
+	path1.EndpointB.ChannelConfig.Order = channeltypes.UNORDERED
+	path1.EndpointA.ChannelConfig.Version = "ics20-1"
+	path1.EndpointB.ChannelConfig.Version = "ics20-1"
 
-	return path
+	return path1
 }
 
 func MakeInitMsg(balances map[string]uint64) []byte {
@@ -68,16 +72,16 @@ func MakeSwapTx(chann, in_denom, pool_id, exact_amount_out, remote_address, in_a
 	return []byte(msgStr)
 }
 
-func CopyPath(path *ibctesting.Path) *ibctesting.Path {
-	clone := ibctesting.NewPath(path.EndpointA.Chain, path.EndpointB.Chain)
-	clone.EndpointA.ClientID = path.EndpointA.ClientID
-	clone.EndpointB.ClientID = path.EndpointB.ClientID
-	clone.EndpointA.ConnectionID = path.EndpointA.ConnectionID
-	clone.EndpointB.ConnectionID = path.EndpointB.ConnectionID
-	clone.EndpointA.ConnectionConfig = path.EndpointA.ConnectionConfig
-	clone.EndpointB.ConnectionConfig = path.EndpointB.ConnectionConfig
-	clone.EndpointA.ClientConfig = path.EndpointA.ClientConfig
-	clone.EndpointB.ClientConfig = path.EndpointB.ClientConfig
+func CopyPath(path1 *ibctesting.Path) *ibctesting.Path {
+	clone := ibctesting.NewPath(path1.EndpointA.Chain, path1.EndpointB.Chain)
+	clone.EndpointA.ClientID = path1.EndpointA.ClientID
+	clone.EndpointB.ClientID = path1.EndpointB.ClientID
+	clone.EndpointA.ConnectionID = path1.EndpointA.ConnectionID
+	clone.EndpointB.ConnectionID = path1.EndpointB.ConnectionID
+	clone.EndpointA.ConnectionConfig = path1.EndpointA.ConnectionConfig
+	clone.EndpointB.ConnectionConfig = path1.EndpointB.ConnectionConfig
+	clone.EndpointA.ClientConfig = path1.EndpointA.ClientConfig
+	clone.EndpointB.ClientConfig = path1.EndpointB.ClientConfig
 
 	clone.EndpointA.Counterparty = clone.EndpointB
 	clone.EndpointB.Counterparty = clone.EndpointA
@@ -98,6 +102,41 @@ func MakeIBCmsg(chann, amount, toAddress string) []byte {
 	return []byte(msgString)
 }
 
+// send contract token to an address on a foreign chain using ics20 packet
+func ContractIBCTransfer(contractAddress, toAddress string, fromChain *ibctesting.TestChain, ibcPath *ibctesting.Path) {
+	ibcTx := MakeIBCmsg("channel-1", "999999999", toAddress)
+	res := fromChain.ExecuteContract(contractAddress, ibcTx)
+	pack := &channeltypes.Packet{}
+	err := pack.Unmarshal(res)
+	if err != nil {
+		panic(err)
+	}
+
+	ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
+	err = ibcPath.RelayPacket(*pack, ack.Acknowledgement())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func CreateICAPortForContract(contractAddress string, connectionId string, contractChain *ibctesting.TestChain) {
+
+}
+
+// set up ibc channel and ica channel with the same connection for contract
+func SetUpIbcAndICAChannelPathForContract() {
+
+}
+
+func UmarshalPacket(bz []byte) *channeltypes.Packet {
+	pack := &channeltypes.Packet{}
+	err := pack.Unmarshal(bz)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return pack
+}
+
 func TestIBCReflectContract(t *testing.T) {
 	// create 2 test chain
 	var (
@@ -107,7 +146,7 @@ func TestIBCReflectContract(t *testing.T) {
 	)
 	coordinator.CommitBlock(chainA, chainB)
 	// store code
-	codeID := chainA.StoreCodeFile("./keeper/testdata/cw20_ics20.wasm").CodeID
+	codeID := chainA.StoreCodeFile("./keeper/testdata/gamm_contract.wasm").CodeID
 
 	// create balances to instantiate contract
 	balances := map[string]uint64{
@@ -124,10 +163,17 @@ func TestIBCReflectContract(t *testing.T) {
 	sendContractAddr := chainA.InstantiateContract(codeID, initMsg)
 
 	// create paths and set up ibc conn between 2 chain
-	path := ibctesting.NewPath(chainA, chainB)
-	coordinator.SetupConnections(path)
-	// path2 have same conn and client as path
-	path2 := CopyPath(path)
+	path1 := ibctesting.NewPath(chainA, chainB)
+	coordinator.SetupConnections(path1)
+	// path2 have same conn and client as path1
+	path2 := CopyPath(path1)
+
+	q := []byte(`{"ran": {"address": "channel-1/swap"}}`)
+	ran, err := chainA.SmartQuery(sendContractAddr.String(), q)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(ran))
 
 	// contract msg for creating ica port
 	icaMsg := &types.MsgCreateICAPortForSmartContract{
@@ -135,7 +181,7 @@ func TestIBCReflectContract(t *testing.T) {
 
 		ContractAddress: sendContractAddr.String(),
 
-		ConnectionId: path.EndpointA.ConnectionID,
+		ConnectionId: path1.EndpointA.ConnectionID,
 	}
 	result, err := chainA.SendMsgs(icaMsg)
 	if err != nil {
@@ -147,8 +193,8 @@ func TestIBCReflectContract(t *testing.T) {
 	icaAddr := pInstResp.IcaAddress
 
 	// set up ica chann for contract
-	controllerPortID, _ := types.GenerateICAPortID(sendContractAddr.String(), path.EndpointA.ConnectionID, path.EndpointB.ConnectionID)
-	icaPath := SetupICAChannel(path, controllerPortID)
+	controllerPortID, _ := types.GenerateICAPortID(sendContractAddr.String(), path1.EndpointA.ConnectionID, path1.EndpointB.ConnectionID)
+	icaPath := SetupICAChannel(path1, controllerPortID)
 	coordinator.CreateChannels(icaPath)
 
 	// set up ibc transfer chann for contract
@@ -156,6 +202,7 @@ func TestIBCReflectContract(t *testing.T) {
 	ibcPath := SetupIBCChannel(path2, ibcPortID)
 	coordinator.CreateChannels(ibcPath)
 
+	// ibc transfer contract token from chainA to
 	ibcTx := MakeIBCmsg("channel-1", "999999999", icaAddr)
 	res := chainA.ExecuteContract(sendContractAddr.String(), ibcTx)
 	appA.GetBaseApp()
@@ -227,34 +274,9 @@ func TestIBCReflectContract(t *testing.T) {
 	appB.ICAHostKeeper.SetParams(chainB.GetContext(), params)
 	appB.Commit()
 	chainB.NextBlock()
-	err = path.RelayPacket(*UmarshalPacket(res), ack.Acknowledgement())
+	err = path1.RelayPacket(*UmarshalPacket(res), ack.Acknowledgement())
 	if err != nil {
 		panic(err)
 	}
 
-}
-
-func UmarshalPacket(bz []byte) *channeltypes.Packet {
-	pack := &channeltypes.Packet{}
-	err := pack.Unmarshal(bz)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	return pack
-}
-
-type ReflectSendQueryMsg struct {
-	Admin        *struct{}     `json:"admin,omitempty"`
-	ListAccounts *struct{}     `json:"list_accounts,omitempty"`
-	Account      *AccountQuery `json:"account,omitempty"`
-}
-
-type AccountQuery struct {
-	ChannelID string `json:"channel_id"`
-}
-
-type AccountResponse struct {
-	LastUpdateTime uint64            `json:"last_update_time,string"`
-	RemoteAddr     string            `json:"remote_addr"`
-	RemoteBalance  wasmvmtypes.Coins `json:"remote_balance"`
 }
