@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	//	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
@@ -504,6 +504,8 @@ func TestMsgMigrateContract(t *testing.T) {
 	}
 }
 
+/*
+
 func TestMsgJsonSignBytes(t *testing.T) {
 	const myInnerMsg = `{"foo":"bar"}`
 	specs := map[string]struct {
@@ -542,3 +544,4 @@ func TestMsgJsonSignBytes(t *testing.T) {
 		})
 	}
 }
+*/
