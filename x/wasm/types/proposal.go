@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 type ProposalType string
@@ -527,22 +527,22 @@ func (p UnpinCodesProposal) String() string {
 
 func validateProposalCommons(title, description string) error {
 	if strings.TrimSpace(title) != title {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal title must not start/end with white spaces")
+		return sdkerrors.Wrap(govtypes.ErrInvalidLengthTx, "proposal title must not start/end with white spaces")
 	}
 	if len(title) == 0 {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal title cannot be blank")
+		return sdkerrors.Wrap(govtypes.ErrInvalidLengthTx, "proposal title cannot be blank")
 	}
 	if len(title) > govtypes.MaxTitleLength {
-		return sdkerrors.Wrapf(govtypes.ErrInvalidProposalContent, "proposal title is longer than max length of %d", govtypes.MaxTitleLength)
+		return sdkerrors.Wrapf(govtypes.ErrInvalidLengthTx, "proposal title is longer than max length of %d", govtypes.MaxTitleLength)
 	}
 	if strings.TrimSpace(description) != description {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal description must not start/end with white spaces")
+		return sdkerrors.Wrap(govtypes.ErrInvalidLengthTx, "proposal description must not start/end with white spaces")
 	}
 	if len(description) == 0 {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal description cannot be blank")
+		return sdkerrors.Wrap(govtypes.ErrInvalidLengthTx, "proposal description cannot be blank")
 	}
 	if len(description) > govtypes.MaxDescriptionLength {
-		return sdkerrors.Wrapf(govtypes.ErrInvalidProposalContent, "proposal description is longer than max length of %d", govtypes.MaxDescriptionLength)
+		return sdkerrors.Wrapf(govtypes.ErrInvalidLengthTx, "proposal description is longer than max length of %d", govtypes.MaxDescriptionLength)
 	}
 	return nil
 }
