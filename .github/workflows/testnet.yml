@@ -24,10 +24,10 @@ jobs:
 # we also start a chain, so that if we can't do that we know we've failed and move on
       - name: Compile chain
         run: |
-          cd cmd/*
+          cd cmd/wasmd
           go build .
           go install .
-          timeout 200 ./craftd testnet start --enable-logging | true
+          timeout 200 ./wasmd testnet start --enable-logging | true
         
           
           
