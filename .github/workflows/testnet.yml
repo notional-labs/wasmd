@@ -27,7 +27,7 @@ jobs:
           cd cmd/wasmd
           go build .
           go install .
-          timeout 200 ./wasmd testnet start --enable-logging | true
+          ./wasmd testnet start --enable-logging | true
         
           
           
