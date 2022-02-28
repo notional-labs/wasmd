@@ -43,9 +43,9 @@ func TestStoreCodeProposal(t *testing.T) {
 	require.NoError(t, err)
 
 	// and proposal execute
-	// handler := govKeeper.LegacyRouter().GetRoute(msgContent.ProposalRoute())
-	// err = handler(ctx, storedProposal.GetContent())
-	// require.NoError(t, err)
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx, src)
+	require.NoError(t, err)
 
 	// then
 	cInfo := wasmKeeper.GetCodeInfo(ctx, 1)
