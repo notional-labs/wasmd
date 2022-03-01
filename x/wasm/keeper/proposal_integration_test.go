@@ -8,17 +8,16 @@ import (
 	"io/ioutil"
 	"testing"
 
-	wasmvm "github.com/CosmWasm/wasmvm"
-
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	govtypesv1beta1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
-	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
+	wasmvm "github.com/CosmWasm/wasmvm"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	govtypesv1beta1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
+	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta2"
+	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 )
 
 func TestStoreCodeProposal(t *testing.T) {
@@ -32,20 +31,23 @@ func TestStoreCodeProposal(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
 	require.NoError(t, err)
 
-	myActorAddress := RandomBech32AccountAddress(t)
+	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
 
 	src := types.StoreCodeProposalFixture(func(p *types.StoreCodeProposal) {
 		p.RunAs = myActorAddress
 		p.WASMByteCode = wasmCode
 	})
 
+	msgContent, err := v1beta2.NewLegacyContent(src, myActorAddress)
+	require.NoError(t, err)
+
 	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, src)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 	require.NoError(t, err)
 
 	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx, storedProposal.GetContent())
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx, src)
 	require.NoError(t, err)
 
 	// then
@@ -88,13 +90,16 @@ func TestInstantiateProposal(t *testing.T) {
 	})
 	em := sdk.NewEventManager()
 
+	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+	msgContent, err := v1beta2.NewLegacyContent(src, myActorAddress)
+
 	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, src)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 	require.NoError(t, err)
 
 	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx.WithEventManager(em), storedProposal.GetContent())
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx.WithEventManager(em), src)
 	require.NoError(t, err)
 
 	// then
@@ -170,13 +175,16 @@ func TestMigrateProposal(t *testing.T) {
 
 	em := sdk.NewEventManager()
 
+	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+	msgContent, err := v1beta2.NewLegacyContent(&src, myActorAddress)
+
 	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, &src)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 	require.NoError(t, err)
 
 	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx.WithEventManager(em), storedProposal.GetContent())
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx.WithEventManager(em), &src)
 	require.NoError(t, err)
 
 	// then
@@ -231,10 +239,11 @@ func TestExecuteProposal(t *testing.T) {
 		RunAs:       exampleContract.BeneficiaryAddr.String(),
 	}
 
-	em := sdk.NewEventManager()
+	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+	msgContent, err := v1beta2.NewLegacyContent(&badSrc, myActorAddress)
 
 	// fails on store - this doesn't have permission
-	storedProposal, err := govKeeper.SubmitProposal(ctx, &badSrc)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 	require.Error(t, err)
 	// balance should not change
 	bal = bankKeeper.GetBalance(ctx, contractAddr, "denom")
@@ -249,15 +258,16 @@ func TestExecuteProposal(t *testing.T) {
 		RunAs:       exampleContract.VerifierAddr.String(),
 	}
 
-	em = sdk.NewEventManager()
+	myActorAddress = govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+	msgContent, err = v1beta2.NewLegacyContent(&src, myActorAddress)
 
 	// when stored
-	storedProposal, err = govKeeper.SubmitProposal(ctx, &src)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 	require.NoError(t, err)
 
 	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx.WithEventManager(em), storedProposal.GetContent())
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx, &src)
 	require.NoError(t, err)
 
 	// balance should be empty (proper release)
@@ -300,15 +310,16 @@ func TestSudoProposal(t *testing.T) {
 		Msg:         stealMsgBz,
 	}
 
-	em := sdk.NewEventManager()
+	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+	msgContent, err := v1beta2.NewLegacyContent(&src, myActorAddress)
 
 	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, &src)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 	require.NoError(t, err)
 
 	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx.WithEventManager(em), storedProposal.GetContent())
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx, &src)
 	require.NoError(t, err)
 
 	// balance should be empty (and verifier richer)
@@ -389,12 +400,15 @@ func TestAdminProposals(t *testing.T) {
 
 			require.NoError(t, wasmKeeper.importContract(ctx, contractAddr, &spec.state, []types.Model{}))
 			// when stored
-			storedProposal, err := govKeeper.SubmitProposal(ctx, spec.srcProposal)
+			myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+			msgContent, err := v1beta2.NewLegacyContent(spec.srcProposal, myActorAddress)
+
+			_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 			require.NoError(t, err)
 
 			// and execute proposal
-			handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-			err = handler(ctx, storedProposal.GetContent())
+			handler := govKeeper.LegacyRouter().GetRoute(spec.srcProposal.ProposalRoute())
+			err = handler(ctx, spec.srcProposal)
 			require.NoError(t, err)
 
 			// then
@@ -461,12 +475,15 @@ func TestUpdateParamsProposal(t *testing.T) {
 			}
 
 			// when stored
-			storedProposal, err := govKeeper.SubmitProposal(ctx, &proposal)
+			myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+			msgContent, err := v1beta2.NewLegacyContent(&proposal, myActorAddress)
+
+			_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 			require.NoError(t, err)
 
 			// and proposal execute
-			handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-			err = handler(ctx, storedProposal.GetContent())
+			handler := govKeeper.LegacyRouter().GetRoute(proposal.ProposalRoute())
+			err = handler(ctx, &proposal)
 			require.NoError(t, err)
 
 			// then
@@ -544,17 +561,19 @@ func TestPinCodesProposal(t *testing.T) {
 			}
 
 			// when stored
-			storedProposal, gotErr := govKeeper.SubmitProposal(ctx, &proposal)
+			myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+			msgContent, err := v1beta2.NewLegacyContent(&proposal, myActorAddress)
+
+			_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 			if spec.expErr {
-				require.Error(t, gotErr)
+				require.Error(t, err)
 				return
 			}
-			require.NoError(t, gotErr)
 
 			// and proposal execute
-			handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-			gotErr = handler(ctx, storedProposal.GetContent())
-			require.NoError(t, gotErr)
+			handler := govKeeper.LegacyRouter().GetRoute(proposal.ProposalRoute())
+			err = handler(ctx, &proposal)
+			require.NoError(t, err)
 
 			// then
 			for i := range spec.srcCodeIDs {
@@ -631,17 +650,19 @@ func TestUnpinCodesProposal(t *testing.T) {
 			}
 
 			// when stored
-			storedProposal, gotErr := govKeeper.SubmitProposal(ctx, &proposal)
+			myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+			msgContent, err := v1beta2.NewLegacyContent(&proposal, myActorAddress)
+
+			_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, nil)
 			if spec.expErr {
-				require.Error(t, gotErr)
+				require.Error(t, err)
 				return
 			}
-			require.NoError(t, gotErr)
 
 			// and proposal execute
-			handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-			gotErr = handler(ctx, storedProposal.GetContent())
-			require.NoError(t, gotErr)
+			handler := govKeeper.LegacyRouter().GetRoute(proposal.ProposalRoute())
+			err = handler(ctx, &proposal)
+			require.NoError(t, err)
 
 			// then
 			for i := range spec.srcCodeIDs {

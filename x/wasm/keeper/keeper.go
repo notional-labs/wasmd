@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	"github.com/cosmos/cosmos-sdk/types/address"
 
@@ -850,10 +850,11 @@ func (k Keeper) runtimeGasForContract(ctx sdk.Context) uint64 {
 	if meter.IsOutOfGas() {
 		return 0
 	}
-	if meter.Limit() == 0 { // infinite gas meter with limit=0 and not out of gas
-		return math.MaxUint64
+	if meter.Limit() == 0 {
+		return k.gasRegister.ToWasmVMGas(meter.Limit() - meter.GasConsumedToLimit())
 	}
-	return k.gasRegister.ToWasmVMGas(meter.Limit() - meter.GasConsumedToLimit())
+
+	return math.MaxUint64
 }
 
 func (k Keeper) consumeRuntimeGas(ctx sdk.Context, gas uint64) {

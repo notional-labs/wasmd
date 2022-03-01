@@ -122,6 +122,7 @@ var TestingStakeParams = stakingtypes.Params{
 	MaxEntries:        10,
 	HistoricalEntries: 10,
 	BondDenom:         "stake",
+	MinCommissionRate: sdk.NewDec(1),
 }
 
 type TestFaucet struct {
@@ -239,7 +240,6 @@ func createTestInput(
 	}
 
 	require.NoError(t, ms.LoadLatestVersion())
-
 	ctx := sdk.NewContext(ms, tmproto.Header{
 		Height: 1234567,
 		Time:   time.Date(2020, time.April, 22, 12, 0, 0, 0, time.UTC),
@@ -363,14 +363,6 @@ func createTestInput(
 		scopedIBCKeeper,
 	)
 
-	router := authmiddleware.NewLegacyRouter()
-	br := bank.AppModule.Route(bank.AppModule{})
-	router.AddRoute(br)
-	sr := staking.AppModule.Route(staking.AppModule{})
-	router.AddRoute(sr)
-	dr := distribution.AppModule.Route(distribution.AppModule{})
-	router.AddRoute(dr)
-
 	querier := baseapp.NewGRPCQueryRouter()
 	querier.SetInterfaceRegistry(encodingConfig.InterfaceRegistry)
 	msgRouter := authmiddleware.NewMsgServiceRouter(encodingConfig.InterfaceRegistry)
@@ -400,16 +392,6 @@ func createTestInput(
 	keeper.SetParams(ctx, types.DefaultParams())
 	// add wasm handler so we can loop-back (contracts calling contracts)
 	contractKeeper := NewDefaultPermissionKeeper(&keeper)
-	router.AddRoute(sdk.NewRoute(types.RouterKey, TestHandler(contractKeeper)))
-
-	am := module.NewManager( // minimal module set that we use for message/ query tests
-		bank.NewAppModule(appCodec, bankKeeper, accountKeeper),
-		staking.NewAppModule(appCodec, stakingKeeper, accountKeeper, bankKeeper),
-		distribution.NewAppModule(appCodec, distKeeper, accountKeeper, bankKeeper, stakingKeeper),
-	)
-	am.RegisterServices(module.NewConfigurator(appCodec, msgRouter, querier))
-	types.RegisterMsgServer(msgRouter, NewMsgServerImpl(NewDefaultPermissionKeeper(keeper)))
-	types.RegisterQueryServer(querier, NewGrpcQuerier(appCodec, keys[types.ModuleName], keeper, keeper.queryGasLimit))
 
 	govRouter := govtypesv1beta1.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypesv1beta1.ProposalHandler).
@@ -435,6 +417,16 @@ func createTestInput(
 	govKeeper.SetDepositParams(ctx, govtypesv1beta2.DefaultDepositParams())
 	govKeeper.SetVotingParams(ctx, govtypesv1beta2.DefaultVotingParams())
 	govKeeper.SetTallyParams(ctx, govtypesv1beta2.DefaultTallyParams())
+
+	am := module.NewManager( // minimal module set that we use for message/ query tests
+		bank.NewAppModule(appCodec, bankKeeper, accountKeeper),
+		staking.NewAppModule(appCodec, stakingKeeper, accountKeeper, bankKeeper),
+		distribution.NewAppModule(appCodec, distKeeper, accountKeeper, bankKeeper, stakingKeeper),
+		gov.NewAppModule(appCodec, govKeeper, accountKeeper, bankKeeper),
+	)
+	am.RegisterServices(module.NewConfigurator(appCodec, msgRouter, querier))
+	types.RegisterMsgServer(msgRouter, NewMsgServerImpl(NewDefaultPermissionKeeper(keeper)))
+	types.RegisterQueryServer(querier, NewGrpcQuerier(appCodec, keys[types.ModuleName], keeper, keeper.queryGasLimit))
 
 	keepers := TestKeepers{
 		AccountKeeper:  accountKeeper,
