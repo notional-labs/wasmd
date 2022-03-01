@@ -11,7 +11,7 @@ import (
 func TestInitGenesis(t *testing.T) {
 	data := setupTest(t)
 
-	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
+	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 1000000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 	creator := data.faucet.NewFundedAccount(data.ctx, deposit.Add(deposit...)...)
 	fred := data.faucet.NewFundedAccount(data.ctx, topUp...)
