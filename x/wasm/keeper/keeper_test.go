@@ -437,6 +437,7 @@ func TestInstantiateWithPermissions(t *testing.T) {
 		"onlyAddress with non matching address": {
 			srcPermission: types.AccessTypeOnlyAddress.With(otherAddr),
 			expError:      sdkerrors.ErrUnauthorized,
+			srcActor:      myAddr,
 		},
 	}
 	for msg, spec := range specs {
