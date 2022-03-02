@@ -1,6 +1,8 @@
 package app
 
 import (
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -9,15 +11,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/middleware"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	channelkeeper "github.com/cosmos/ibc-go/v3/modules/core/04-channel/keeper"
+	ibcmiddleware "github.com/cosmos/ibc-go/v3/modules/core/middleware"
 )
 
 // ComposeMiddlewares compose multiple middlewares on top of a tx.Handler. The
 // middleware order in the variadic arguments is from outer to inner.
 //
-// Example: Given a base tx.Handler H, and two middlewares A and B, the
 // middleware stack:
 // ```
 // A.pre
@@ -48,12 +48,12 @@ type TxHandlerOptions struct {
 	LegacyRouter     sdk.Router
 	MsgServiceRouter *middleware.MsgServiceRouter
 
-	AccountKeeper   middleware.AccountKeeper
-	BankKeeper      types.BankKeeper
-	FeegrantKeeper  middleware.FeegrantKeeper
-	SignModeHandler authsigning.SignModeHandler
-	SigGasConsumer  func(meter sdk.GasMeter, sig signing.SignatureV2, params types.Params) error
-
+	AccountKeeper     middleware.AccountKeeper
+	BankKeeper        types.BankKeeper
+	FeegrantKeeper    middleware.FeegrantKeeper
+	SignModeHandler   authsigning.SignModeHandler
+	SigGasConsumer    func(meter sdk.GasMeter, sig signing.SignatureV2, params types.Params) error
+	ChannelKeeper     channelkeeper.Keeper
 	TXCounterStoreKey storetypes.StoreKey
 	WasmConfig        *wasmTypes.WasmConfig
 }
@@ -132,5 +132,6 @@ func NewDefaultTxHandler(options TxHandlerOptions) (tx.Handler, error) {
 		middleware.ConsumeBlockGasMiddleware,
 		middleware.NewTipMiddleware(options.BankKeeper),
 		//Ibc v3 middleware
+		ibcmiddleware.IbcTxMiddleware(options.ChannelKeeper),
 	), nil
 }
