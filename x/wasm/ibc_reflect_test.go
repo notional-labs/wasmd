@@ -24,9 +24,9 @@ func TestIBCReflectContract(t *testing.T) {
 	//  "ibc_reflect" sends a submessage to "reflect" which is returned as submessage.
 
 	var (
-		coordinator = wasmibctesting.NewCoordinator(t, 2)
-		chainA      = coordinator.GetChain(wasmibctesting.GetChainID(0))
-		chainB      = coordinator.GetChain(wasmibctesting.GetChainID(1))
+		coordinator, appA, appB = wasmibctesting.NewCoordinator(t, 2)
+		chainA                  = coordinator.GetChain(wasmibctesting.GetChainID(0))
+		chainB                  = coordinator.GetChain(wasmibctesting.GetChainID(1))
 	)
 	coordinator.CommitBlock(chainA, chainB)
 

@@ -2,6 +2,7 @@ package ibctesting
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -33,6 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
+	"github.com/tendermint/tendermint/libs/log"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmprotoversion "github.com/tendermint/tendermint/proto/tendermint/version"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -40,6 +44,8 @@ import (
 
 	wasmd "github.com/CosmWasm/wasmd/app"
 	"github.com/CosmWasm/wasmd/x/wasm"
+	osmosis "github.com/osmosis-labs/osmosis/v7/app"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
@@ -82,7 +88,7 @@ type PacketAck struct {
 //
 // Time management is handled by the Coordinator in order to ensure synchrony between chains.
 // Each update of any chain increments the block header time for all chains by 5 seconds.
-func NewTestChain(t *testing.T, coord *Coordinator, chainID string, opts ...wasm.Option) *TestChain {
+func NewWasmTestChain(t *testing.T, coord *Coordinator, chainID string, opts ...wasm.Option) (*TestChain, *wasmd.WasmApp) {
 	// generate validator private/public key
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
@@ -133,7 +139,143 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string, opts ...wasm
 
 	coord.CommitBlock(chain)
 
-	return chain
+	return chain, app.WasmApp
+}
+
+func NewTestOsmoChain(t *testing.T, coord *Coordinator, chainID string) (*TestChain, *osmosis.OsmosisApp) {
+	// generate validator private/public key
+	privVal := mock.NewPV()
+	pubKey, err := privVal.GetPubKey()
+	require.NoError(t, err)
+
+	// create validator set with single validator
+	validator := tmtypes.NewValidator(pubKey, 1)
+	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
+	signers := []tmtypes.PrivValidator{privVal}
+
+	// generate genesis account
+	senderPrivKey := secp256k1.GenPrivKey()
+	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
+	amount, ok := sdk.NewIntFromString("10000000000001000000")
+	require.True(t, ok)
+	balances := banktypes.Balance{
+		Address: acc.GetAddress().String(),
+		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
+	}
+
+	var emptyWasmOpts []wasm.Option = nil
+	app := SetupOsmoAppWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, emptyWasmOpts, balances)
+	// create current header and call begin block
+	header := tmproto.Header{
+		ChainID: chainID,
+		Height:  1,
+		Time:    coord.CurrentTime.UTC(),
+	}
+
+	txConfig := app.GetTxConfig()
+
+	// create an account to send transactions from
+	chain := &TestChain{
+		t:             t,
+		Coordinator:   coord,
+		ChainID:       chainID,
+		App:           app,
+		CurrentHeader: header,
+		QueryServer:   app.GetIBCKeeper(),
+		TxConfig:      txConfig,
+		Codec:         app.AppCodec(),
+		Vals:          valSet,
+		Signers:       signers,
+		senderPrivKey: senderPrivKey,
+		SenderAccount: acc,
+	}
+
+	coord.CommitBlock(chain)
+
+	return chain, app
+}
+
+func SetupOsmoAppWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, opts []wasm.Option, balances ...banktypes.Balance) *osmosis.OsmosisApp {
+	db := dbm.NewMemDB()
+	app := osmosis.NewOsmosisApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, osmosis.DefaultNodeHome, 5, osmosis.MakeEncodingConfig(), nil, osmosis.GetWasmEnabledProposals(), nil, nil)
+
+	genesisState := osmosis.NewDefaultGenesisState()
+
+	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
+	genesisState[authtypes.ModuleName] = app.AppCodec().MustMarshalJSON(authGenesis)
+
+	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
+	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
+
+	bondAmt := sdk.NewInt(1000000)
+
+	for _, val := range valSet.Validators {
+		pk, err := cryptocodec.FromTmPubKeyInterface(val.PubKey)
+		require.NoError(t, err)
+		pkAny, err := codectypes.NewAnyWithValue(pk)
+		require.NoError(t, err)
+		validator := stakingtypes.Validator{
+			OperatorAddress:   sdk.ValAddress(val.Address).String(),
+			ConsensusPubkey:   pkAny,
+			Jailed:            false,
+			Status:            stakingtypes.Bonded,
+			Tokens:            bondAmt,
+			DelegatorShares:   sdk.OneDec(),
+			Description:       stakingtypes.Description{},
+			UnbondingHeight:   int64(0),
+			UnbondingTime:     time.Unix(0, 0).UTC(),
+			Commission:        stakingtypes.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
+			MinSelfDelegation: sdk.ZeroInt(),
+		}
+		validators = append(validators, validator)
+		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress(), val.Address.Bytes(), sdk.OneDec()))
+
+	}
+
+	// set validators and delegations
+	stakingGenesis := stakingtypes.NewGenesisState(stakingtypes.DefaultParams(), validators, delegations)
+	genesisState[stakingtypes.ModuleName] = app.AppCodec().MustMarshalJSON(stakingGenesis)
+
+	totalSupply := sdk.NewCoins()
+	for _, b := range balances {
+		// add genesis acc tokens and delegated tokens to total supply
+		totalSupply = totalSupply.Add(b.Coins...)
+	}
+	totalSupply = totalSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))
+
+	bondPool := banktypes.Balance{
+		Address: "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh",
+		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt)),
+	}
+
+	balances = append(balances, []banktypes.Balance{bondPool}...)
+
+	// update total supply
+	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{})
+	genesisState[banktypes.ModuleName] = app.AppCodec().MustMarshalJSON(bankGenesis)
+
+	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
+	require.NoError(t, err)
+
+	// init chain will set the validator set and initialize the genesis accounts
+	app.InitChain(
+		abci.RequestInitChain{
+			Validators:      []abci.ValidatorUpdate{},
+			ConsensusParams: wasmd.DefaultConsensusParams,
+			AppStateBytes:   stateBytes,
+		},
+	)
+
+	// commit genesis changes
+	app.Commit()
+	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{
+		Height:             app.LastBlockHeight() + 1,
+		AppHash:            app.LastCommitID().Hash,
+		ValidatorsHash:     valSet.Hash(),
+		NextValidatorsHash: valSet.Hash(),
+	}})
+
+	return app
 }
 
 // GetContext returns the current context for the application.
