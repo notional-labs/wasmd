@@ -138,5 +138,7 @@ replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/osmosis-labs/osmosis/v7 => ./osmosis
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
+	github.com/cosmos/iavl => github.com/osmosis-labs/iavl v0.17.3-osmo-v4
+
 
 )
