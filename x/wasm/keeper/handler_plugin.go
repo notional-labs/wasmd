@@ -64,9 +64,12 @@ func (h SDKMessageHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddr
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Println(sdkMsgs[0])
 	for _, sdkMsg := range sdkMsgs {
+		// fmt.Println("check point")
 		res, err := h.handleSdkMessage(ctx, contractAddr, sdkMsg)
 		if err != nil {
+			panic(err)
 			return nil, nil, err
 		}
 		// append data
@@ -75,6 +78,10 @@ func (h SDKMessageHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddr
 		sdkEvents := make([]sdk.Event, len(res.Events))
 		for i := range res.Events {
 			sdkEvents[i] = sdk.Event(res.Events[i])
+			// fmt.Println(sdkEvents[i].Type)
+			// for _, ev := range sdkEvents[i].Attributes {
+			// 	fmt.Println(ev.String())
+			// }
 		}
 		events = append(events, sdkEvents...)
 	}

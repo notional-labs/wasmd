@@ -120,6 +120,7 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]sdk.Msg, 
 		ToAddress:   msg.Send.ToAddress,
 		Amount:      toSend,
 	}
+	fmt.Println("klklkl")
 	return []sdk.Msg{&sdkMsg}, nil
 }
 

@@ -304,6 +304,49 @@ func (coord *Coordinator) RelayAndAckPendingPackets(path *Path) error {
 		}
 	}
 	dest.Chain.PendingAckPackets = nil
+
+	// get all the packet to relay src->dest
+	src = path.EndpointB
+	dest = path.EndpointA
+	toSend = src.Chain.PendingSendPackets
+	coord.t.Logf("Relay %d Packets A->B\n", len(toSend))
+
+	// send this to the other side
+	coord.IncrementTime()
+	coord.CommitBlock(src.Chain)
+	err = dest.UpdateClient()
+	if err != nil {
+		return err
+	}
+	for _, packet := range toSend {
+		err = dest.RecvPacket(packet)
+		if err != nil {
+			return err
+		}
+	}
+	src.Chain.PendingSendPackets = nil
+
+	// get all the acks to relay dest->src
+	toAck = dest.Chain.PendingAckPackets
+	// TODO: assert >= len(toSend)?
+	coord.t.Logf("Ack %d Packets B->A\n", len(toAck))
+
+	// send the ack back from dest -> src
+	coord.IncrementTime()
+	coord.CommitBlock(dest.Chain)
+	err = src.UpdateClient()
+	if err != nil {
+		return err
+	}
+	for _, ack := range toAck {
+		err = src.AcknowledgePacket(ack.Packet, ack.Ack)
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Println("ack: ", string(toAck[0].Ack))
+	dest.Chain.PendingAckPackets = nil
+
 	return nil
 }
 

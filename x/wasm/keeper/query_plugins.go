@@ -15,7 +15,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types" //nolint
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -60,6 +60,16 @@ func (q QueryHandler) Query(request wasmvmtypes.QueryRequest, gasLimit uint64) (
 	if ok := errors.As(err, &noSuchContract); ok {
 		return res, wasmvmtypes.NoSuchContract{Addr: noSuchContract.Addr}
 	}
+	// fmt.Println(string(res[1]), "est")
+	// if string(res) == "\n\u00141.022258688245249243" {
+	// 	fmt.Println("okay")
+	// 	var resp gammtypes.QuerySpotPriceResponse
+	// 	err = proto.Unmarshal(res, &resp)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	return []byte("myReplyData"), nil
+	// }
 	return res, err
 }
 
@@ -265,6 +275,7 @@ func IBCQuerier(wasm contractMetaDataSource, channelKeeper types.ChannelKeeper) 
 
 func StargateQuerier(queryRouter GRPCQueryRouter) func(ctx sdk.Context, request *wasmvmtypes.StargateQuery) ([]byte, error) {
 	return func(ctx sdk.Context, msg *wasmvmtypes.StargateQuery) ([]byte, error) {
+		fmt.Println(msg.Path)
 		route := queryRouter.Route(msg.Path)
 		if route == nil {
 			return nil, wasmvmtypes.UnsupportedRequest{Kind: fmt.Sprintf("No route to query '%s'", msg.Path)}

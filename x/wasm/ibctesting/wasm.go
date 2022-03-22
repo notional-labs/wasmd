@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	wasmd "github.com/CosmWasm/wasmd/app"
-
 	ibctesting "github.com/cosmos/ibc-go/v2/testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,6 +16,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/rand"
 
+	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
@@ -120,11 +119,34 @@ func (chain *TestChain) SmartQuery(contractAddr string, queryMsg interface{}, re
 	// unpack protobuf
 	var resp types.QuerySmartContractStateResponse
 	err = proto.Unmarshal(res.Value, &resp)
+
 	if err != nil {
 		return err
 	}
 	// unpack json content
 	return json.Unmarshal(resp.Data, response)
+}
+
+func (c *TestChain) ExecuteContract(contractAddr string, msg []byte) ([]byte, []abci.Event) {
+	executeMsg := &types.MsgExecuteContract{
+		Sender:   c.SenderAccount.GetAddress().String(),
+		Contract: contractAddr,
+		Msg:      msg,
+		Funds:    sdk.Coins{ibctesting.TestCoin},
+	}
+
+	r, err := c.SendMsgs(executeMsg)
+	if err != nil {
+		panic(err)
+	}
+
+	require.NoError(c.t, err)
+	protoResult := c.parseSDKResultData(r)
+	require.Len(c.t, protoResult.Data, 1)
+
+	var pExecResp types.MsgExecuteContractResponse
+	require.NoError(c.t, pExecResp.Unmarshal(protoResult.Data[0].Data))
+	return pExecResp.Data, r.Events
 }
 
 func (chain *TestChain) parseSDKResultData(r *sdk.Result) sdk.TxMsgData {
@@ -135,8 +157,8 @@ func (chain *TestChain) parseSDKResultData(r *sdk.Result) sdk.TxMsgData {
 
 // ContractInfo is a helper function to returns the ContractInfo for the given contract address
 func (chain *TestChain) ContractInfo(contractAddr sdk.AccAddress) *types.ContractInfo {
-	type testSupporter interface {
-		TestSupport() *wasmd.TestSupport
+	type AppThatHasWasm interface {
+		GetWasmKeeper() *wasm.Keeper
 	}
-	return chain.App.(testSupporter).TestSupport().WasmKeeper().GetContractInfo(chain.GetContext(), contractAddr)
+	return chain.App.(AppThatHasWasm).GetWasmKeeper().GetContractInfo(chain.GetContext(), contractAddr)
 }

@@ -1,14 +1,11 @@
 package app
 
 import (
-	"testing"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 
 	"github.com/CosmWasm/wasmd/app/params"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -18,54 +15,59 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 )
 
-type TestSupport struct {
-	t   testing.TB
-	app *WasmApp
+// type TestSupport struct {
+// 	t   testing.TB
+// 	app *WasmApp
+// }
+
+func (app *WasmApp) IBCKeeper() *ibckeeper.Keeper {
+	return app.ibcKeeper
 }
 
-func NewTestSupport(t testing.TB, app *WasmApp) *TestSupport {
-	return &TestSupport{t: t, app: app}
+func (app *WasmApp) GetWasmKeeper() wasm.Keeper {
+	return app.wasmKeeper
 }
 
-func (s TestSupport) IBCKeeper() *ibckeeper.Keeper {
-	return s.app.ibcKeeper
+func (app *WasmApp) ScopedWasmIBCKeeper() capabilitykeeper.ScopedKeeper {
+	return app.scopedWasmKeeper
 }
 
-func (s TestSupport) WasmKeeper() wasm.Keeper {
-	return s.app.wasmKeeper
+func (app *WasmApp) ScopeIBCKeeper() capabilitykeeper.ScopedKeeper {
+	return app.scopedIBCKeeper
 }
 
-func (s TestSupport) AppCodec() codec.Codec {
-	return s.app.appCodec
-}
-func (s TestSupport) ScopedWasmIBCKeeper() capabilitykeeper.ScopedKeeper {
-	return s.app.scopedWasmKeeper
+func (app *WasmApp) ScopedTransferKeeper() capabilitykeeper.ScopedKeeper {
+	return app.scopedTransferKeeper
 }
 
-func (s TestSupport) ScopeIBCKeeper() capabilitykeeper.ScopedKeeper {
-	return s.app.scopedIBCKeeper
+func (app *WasmApp) StakingKeeper() stakingkeeper.Keeper {
+	return app.stakingKeeper
 }
 
-func (s TestSupport) ScopedTransferKeeper() capabilitykeeper.ScopedKeeper {
-	return s.app.scopedTransferKeeper
+func (app *WasmApp) BankKeeper() bankkeeper.Keeper {
+	return app.bankKeeper
 }
 
-func (s TestSupport) StakingKeeper() stakingkeeper.Keeper {
-	return s.app.stakingKeeper
+func (app *WasmApp) TransferKeeper() ibctransferkeeper.Keeper {
+	return app.transferKeeper
 }
 
-func (s TestSupport) BankKeeper() bankkeeper.Keeper {
-	return s.app.bankKeeper
+func (app *WasmApp) GetBaseApp() *baseapp.BaseApp {
+	return app.BaseApp
 }
 
-func (s TestSupport) TransferKeeper() ibctransferkeeper.Keeper {
-	return s.app.transferKeeper
-}
-
-func (s TestSupport) GetBaseApp() *baseapp.BaseApp {
-	return s.app.BaseApp
-}
-
-func (s TestSupport) GetTxConfig() client.TxConfig {
+func (app *WasmApp) GetTxConfig() client.TxConfig {
 	return params.MakeEncodingConfig().TxConfig
+}
+
+func (app *WasmApp) GetStakingKeeper() stakingkeeper.Keeper {
+	return app.StakingKeeper()
+}
+
+func (app *WasmApp) GetIBCKeeper() *ibckeeper.Keeper {
+	return app.IBCKeeper()
+}
+
+func (app *WasmApp) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
+	return app.ScopeIBCKeeper()
 }

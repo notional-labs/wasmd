@@ -1,9 +1,8 @@
 package wasm_test
 
 import (
+	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v2/testing"
@@ -12,8 +11,77 @@ import (
 	"github.com/stretchr/testify/require"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	osmosis "github.com/osmosis-labs/osmosis/v7/app"
+	gammpool "github.com/osmosis-labs/osmosis/v7/x/gamm/pool-models/balancer"
+	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
 )
+
+func MakeFundIbcGammContractTx(channelId, remoteGammContract string) []byte {
+	msgStr := fmt.Sprintf(`{"ibc_fund_gamm_contract": {"channel_id": "%s", "remote_gamm_contract_address": "%s"}}`,
+		channelId,
+		remoteGammContract,
+	)
+	return []byte(msgStr)
+}
+
+func MakeSwapTx(channelID, poolID, inDenom, inAmount, outDenom, minOutAmount, toAddress string) []byte {
+	msgStr := fmt.Sprintf(`{"ibc_swap" :{"channel_id": "%s", "pool_id": %s, "in_denom": "%s", "in_amount": "%s", "out_denom": "%s", "min_out_amount": "%s","to_address": "%s"}}`,
+		channelID,
+		poolID,
+		inDenom,
+		inAmount,
+		outDenom,
+		minOutAmount,
+		toAddress,
+	)
+	return []byte(msgStr)
+}
+
+func MakeSetIbcDenomTx(ibcDenom, contractChannelID, contractNativeDenom string) []byte {
+	msgStr := fmt.Sprintf(`{"set_ibc_denom_for_contract" :{"ibc_denom": "%s", "contract_channel_id": "%s", "contract_native_denom": "%s"}}`,
+		ibcDenom,
+		contractChannelID,
+		contractNativeDenom,
+	)
+	return []byte(msgStr)
+}
+
+func MakeSpotPriceQueryTx(channelID, poolID, inDenom, outDenom, withSwapFee string) []byte {
+	msgStr := fmt.Sprintf(`{"spot_price_query": {"channel_id": "%s", "pool_id": %s, "in_denom": "%s", "out_denom": "%s", "with_swap_fee": %s}}`,
+		channelID,
+		poolID,
+		inDenom,
+		outDenom,
+		withSwapFee,
+	)
+	return []byte(msgStr)
+}
+
+func FundOsmoForAcc(app *osmosis.OsmosisApp, osmoChain *wasmibctesting.TestChain, accAddr sdk.AccAddress) {
+	ctx := osmoChain.GetContext()
+	app.BankKeeper.MintCoins(ctx, gammtypes.ModuleName, sdk.NewCoins(sdk.NewCoin("stake", sdk.NewIntFromUint64(99999999999999))))
+	app.BankKeeper.SendCoinsFromModuleToAccount(ctx, gammtypes.ModuleName, accAddr, sdk.NewCoins(sdk.NewCoin("stake", sdk.NewIntFromUint64(99999999999999))))
+	app.Commit()
+	osmoChain.NextBlock()
+}
+
+func CopyPath(path1 *wasmibctesting.Path) *wasmibctesting.Path {
+	clone := wasmibctesting.NewPath(path1.EndpointA.Chain, path1.EndpointB.Chain)
+	clone.EndpointA.ClientID = path1.EndpointA.ClientID
+	clone.EndpointB.ClientID = path1.EndpointB.ClientID
+	clone.EndpointA.ConnectionID = path1.EndpointA.ConnectionID
+	clone.EndpointB.ConnectionID = path1.EndpointB.ConnectionID
+	clone.EndpointA.ConnectionConfig = path1.EndpointA.ConnectionConfig
+	clone.EndpointB.ConnectionConfig = path1.EndpointB.ConnectionConfig
+	clone.EndpointA.ClientConfig = path1.EndpointA.ClientConfig
+	clone.EndpointB.ClientConfig = path1.EndpointB.ClientConfig
+
+	clone.EndpointA.Counterparty = clone.EndpointB
+	clone.EndpointB.Counterparty = clone.EndpointA
+
+	return clone
+}
 
 func TestIBCReflectContract(t *testing.T) {
 	// scenario:
@@ -24,86 +92,141 @@ func TestIBCReflectContract(t *testing.T) {
 	//  "ibc_reflect" sends a submessage to "reflect" which is returned as submessage.
 
 	var (
-		coordinator, appA, appB = wasmibctesting.NewCoordinator(t, 2)
-		chainA                  = coordinator.GetChain(wasmibctesting.GetChainID(0))
-		chainB                  = coordinator.GetChain(wasmibctesting.GetChainID(1))
+		coordinator, wasmApp, osmosisApp = wasmibctesting.NewCoordinator(t, 2)
+		wasmChain                        = coordinator.GetChain(wasmibctesting.GetChainID(0))
+		osmosisChain                     = coordinator.GetChain(wasmibctesting.GetChainID(1))
 	)
-	coordinator.CommitBlock(chainA, chainB)
+	coordinator.CommitBlock(wasmChain, osmosisChain)
 
 	initMsg := []byte(`{}`)
-	codeID := chainA.StoreCodeFile("./keeper/testdata/ibc_gamm_osmosis.wasm").CodeID
-	sendContractAddr := chainA.InstantiateContract(codeID, initMsg)
+	osmosisContractCodeID := osmosisChain.StoreCodeFile("./keeper/testdata/ibc_gamm_osmosis.wasm").CodeID
+	osmosisContractAddr := osmosisChain.InstantiateContract(osmosisContractCodeID, initMsg)
 
-	reflectID := chainB.StoreCodeFile("./keeper/testdata/ibc_gamm_juno.wasm").CodeID
-	initMsg = wasmkeeper.IBCReflectInitMsg{
-		ReflectCodeID: reflectID,
-	}.GetBytes(t)
+	junoContractCodeID := wasmChain.StoreCodeFile("./keeper/testdata/ibc_gamm_juno.wasm").CodeID
 
-	reflectContractAddr := chainB.InstantiateContract(codeID, initMsg)
+	junoContractAddr := wasmChain.InstantiateContract(junoContractCodeID, initMsg)
 	var (
-		sourcePortID      = chainA.ContractInfo(sendContractAddr).IBCPortID
-		counterpartPortID = chainB.ContractInfo(reflectContractAddr).IBCPortID
+		osmosisContractPortID = osmosisChain.ContractInfo(osmosisContractAddr).IBCPortID
+		junoCountractPortID   = wasmApp.GetWasmKeeper().GetContractInfo(wasmChain.GetContext(), junoContractAddr).IBCPortID
 	)
-	coordinator.CommitBlock(chainA, chainB)
+	coordinator.CommitBlock(wasmChain, osmosisChain)
 	coordinator.UpdateTime()
 
-	require.Equal(t, chainA.CurrentHeader.Time, chainB.CurrentHeader.Time)
-	path := wasmibctesting.NewPath(chainA, chainB)
-	path.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
-		PortID:  sourcePortID,
-		Version: "ibc-reflect-v1",
-		Order:   channeltypes.ORDERED,
+	require.Equal(t, wasmChain.CurrentHeader.Time, osmosisChain.CurrentHeader.Time)
+	ibcGammPath := wasmibctesting.NewPath(osmosisChain, wasmChain)
+	ibcGammPath.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID:  osmosisContractPortID,
+		Version: "ibc-gamm-1",
+		Order:   channeltypes.UNORDERED,
 	}
-	path.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
-		PortID:  counterpartPortID,
-		Version: "ibc-reflect-v1",
-		Order:   channeltypes.ORDERED,
+	ibcGammPath.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID:  junoCountractPortID,
+		Version: "ibc-gamm-1",
+		Order:   channeltypes.UNORDERED,
 	}
 
-	coordinator.SetupConnections(path)
-	coordinator.CreateChannels(path)
+	coordinator.SetupConnections(ibcGammPath)
+	coordinator.CreateChannels(ibcGammPath)
 
-	// TODO: query both contracts directly to ensure they have registered the proper connection
-	// (and the chainB has created a reflect contract)
+	transferPath := CopyPath(ibcGammPath)
+	transferPath.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID:  "transfer",
+		Version: "ics20-1",
+		Order:   channeltypes.UNORDERED,
+	}
+	transferPath.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID:  junoCountractPortID,
+		Version: "ics20-1",
+		Order:   channeltypes.UNORDERED,
+	}
+	coordinator.CreateChannels(transferPath)
 
-	// there should be one packet to relay back and forth (whoami)
-	// TODO: how do I find the packet that was previously sent by the smart contract?
-	// Coordinator.RecvPacket requires channeltypes.Packet as input?
-	// Given the source (portID, channelID), we should be able to count how many packets are pending, query the data
-	// and submit them to the other side (same with acks). This is what the real relayer does. I guess the test framework doesn't?
+	fundMsg := MakeFundIbcGammContractTx(transferPath.EndpointB.ChannelID, osmosisContractAddr.String())
 
-	// Update: I dug through the code, especially channel.Keeper.SendPacket, and it only writes a commitment
-	// only writes I see: https://github.com/cosmos/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L115-L116
-	// commitment is hashed packet: https://github.com/cosmos/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/types/packet.go#L14-L34
-	// how is the relayer supposed to get the original packet data??
-	// eg. ibctransfer doesn't store the packet either: https://github.com/cosmos/cosmos-sdk/blob/master/x/ibc/applications/transfer/keeper/relay.go#L145-L162
-	// ... or I guess the original packet data is only available in the event logs????
-	// https://github.com/cosmos/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L121-L132
+	wasmChain.ExecuteContract(junoContractAddr.String(), fundMsg)
 
-	// ensure the expected packet was prepared, and relay it
-	require.Equal(t, 1, len(chainA.PendingSendPackets))
-	require.Equal(t, 0, len(chainB.PendingSendPackets))
-	err := coordinator.RelayAndAckPendingPackets(path)
-	require.NoError(t, err)
-	require.Equal(t, 0, len(chainA.PendingSendPackets))
-	require.Equal(t, 0, len(chainB.PendingSendPackets))
+	err := coordinator.RelayAndAckPendingPackets(transferPath)
+	if err != nil {
+		panic(err)
+	}
 
-	// let's query the source contract and make sure it registered an address
-	query := ReflectSendQueryMsg{Account: &AccountQuery{ChannelID: path.EndpointA.ChannelID}}
-	var account AccountResponse
-	err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
-	require.NoError(t, err)
-	require.NotEmpty(t, account.RemoteAddr)
-	require.Empty(t, account.RemoteBalance)
+	poolParams := gammpool.PoolParams{
+		SwapFee: sdk.MustNewDecFromStr("0.003"),
+		ExitFee: sdk.MustNewDecFromStr("0.001"),
+	}
 
-	// close channel
-	coordinator.CloseChannel(path)
+	asset1 := gammtypes.PoolAsset{
+		Token:  sdk.NewCoin("ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828", sdk.NewIntFromUint64(200)),
+		Weight: sdk.NewIntFromUint64(99999),
+	}
+	asset2 := gammtypes.PoolAsset{
+		Token:  sdk.NewCoin("stake", sdk.NewIntFromUint64(200)),
+		Weight: sdk.NewIntFromUint64(99999),
+	}
+	assets := []gammtypes.PoolAsset{asset1, asset2}
+	FundOsmoForAcc(osmosisApp, osmosisChain, osmosisContractAddr)
 
-	// let's query the source contract and make sure it registered an address
-	account = AccountResponse{}
-	err = chainA.SmartQuery(sendContractAddr.String(), query, &account)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	setIbcDenomForContractTx := MakeSetIbcDenomTx("ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828", transferPath.EndpointA.ChannelID, "test")
+
+	_, ev := osmosisChain.ExecuteContract(osmosisContractAddr.String(), setIbcDenomForContractTx)
+	for _, i := range ev {
+		if i.Type == "wasm" {
+			fmt.Println(i.String())
+		}
+	}
+
+	_, err = osmosisApp.GAMMKeeper.CreateBalancerPool(osmosisChain.GetContext(), osmosisContractAddr, poolParams, assets, osmosisContractAddr.String())
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(osmosisApp.BankKeeper.GetAllBalances(osmosisChain.GetContext(), osmosisContractAddr))
+
+	ibcSwapMsg := MakeSwapTx(ibcGammPath.EndpointB.ChannelID,
+		"1",
+		"ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828",
+		"10",
+		"stake",
+		"1",
+		osmosisChain.SenderAccount.GetAddress().String(),
+	)
+	fmt.Println(string(ibcSwapMsg))
+
+	fmt.Println(ibcGammPath.EndpointA.ConnectionID, transferPath.EndpointA.ConnectionID)
+
+	// wasmChain.ExecuteContract(junoContractAddr.String(), ibcSwapMsg)
+
+	// fmt.Println(string(wasmChain.PendingSendPackets[0].Data), "test")
+
+	// err = coordinator.RelayAndAckPendingPackets(ibcGammPath)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	coordinator.CommitBlock(wasmChain, osmosisChain)
+	coordinator.UpdateTime()
+	coordinator.CommitBlock(wasmChain, osmosisChain)
+	coordinator.UpdateTime()
+
+	osmosisApp.GRPCQueryRouter().Route("")
+
+	spotPriceQuery := MakeSpotPriceQueryTx(
+		ibcGammPath.EndpointB.ChannelID,
+		"1",
+		"ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828",
+		"stake",
+		"true",
+	)
+
+	wasmChain.ExecuteContract(junoContractAddr.String(), spotPriceQuery)
+
+	err = coordinator.RelayAndAckPendingPackets(ibcGammPath)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(osmosisApp.BankKeeper.GetAllBalances(osmosisChain.GetContext(), osmosisChain.SenderAccount.GetAddress()))
+	fmt.Println(osmosisApp.BankKeeper.GetAllBalances(osmosisChain.GetContext(), osmosisContractAddr))
+
 }
 
 type ReflectSendQueryMsg struct {

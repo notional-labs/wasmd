@@ -161,9 +161,9 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte,
 		return 0, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
 	}
 
-	if !authZ.CanCreateCode(k.getUploadAccessConfig(ctx), creator) {
-		return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not create code")
-	}
+	// if !authZ.CanCreateCode(k.getUploadAccessConfig(ctx), creator) {
+	// 	return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not create code")
+	// }
 	wasmCode, err = uncompress(wasmCode, k.GetMaxWasmCodeSize(ctx))
 	if err != nil {
 		return 0, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())

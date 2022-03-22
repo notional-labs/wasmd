@@ -20,7 +20,6 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
@@ -28,7 +27,6 @@ import (
 	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v2/modules/core/exported"
-	ibckeeper "github.com/cosmos/ibc-go/v2/modules/core/keeper"
 	"github.com/cosmos/ibc-go/v2/modules/core/types"
 	ibctmtypes "github.com/cosmos/ibc-go/v2/modules/light-clients/07-tendermint/types"
 	ibctesting "github.com/cosmos/ibc-go/v2/testing"
@@ -44,6 +42,9 @@ import (
 
 	wasmd "github.com/CosmWasm/wasmd/app"
 	"github.com/CosmWasm/wasmd/x/wasm"
+	sdkSimapp "github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/store"
+	"github.com/osmosis-labs/osmosis/v7/app"
 	osmosis "github.com/osmosis-labs/osmosis/v7/app"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -110,7 +111,7 @@ func NewWasmTestChain(t *testing.T, coord *Coordinator, chainID string, opts ...
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
 	}
 
-	app := NewTestingAppDecorator(t, wasmd.SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, opts, balance))
+	app := wasmd.SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, opts, balance)
 
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -139,7 +140,7 @@ func NewWasmTestChain(t *testing.T, coord *Coordinator, chainID string, opts ...
 
 	coord.CommitBlock(chain)
 
-	return chain, app.WasmApp
+	return chain, app
 }
 
 func NewTestOsmoChain(t *testing.T, coord *Coordinator, chainID string) (*TestChain, *osmosis.OsmosisApp) {
@@ -195,9 +196,15 @@ func NewTestOsmoChain(t *testing.T, coord *Coordinator, chainID string) (*TestCh
 	return chain, app
 }
 
+// interBlockCacheOpt returns a BaseApp option function that sets the persistent
+// inter-block write-through cache.
+func interBlockCacheOpt() func(*baseapp.BaseApp) {
+	return baseapp.SetInterBlockCache(store.NewCommitKVStoreCacheManager())
+}
+
 func SetupOsmoAppWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, opts []wasm.Option, balances ...banktypes.Balance) *osmosis.OsmosisApp {
 	db := dbm.NewMemDB()
-	app := osmosis.NewOsmosisApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, osmosis.DefaultNodeHome, 5, osmosis.MakeEncodingConfig(), nil, osmosis.GetWasmEnabledProposals(), nil, nil)
+	app := osmosis.NewOsmosisApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, osmosis.DefaultNodeHome, 5, osmosis.MakeEncodingConfig(), sdkSimapp.EmptyAppOptions{}, osmosis.GetWasmEnabledProposals(), app.EmptyWasmOpts, interBlockCacheOpt())
 
 	genesisState := osmosis.NewDefaultGenesisState()
 
@@ -688,48 +695,9 @@ func (chain *TestChain) GetChannelCapability(portID, channelID string) *capabili
 }
 
 func (chain *TestChain) Balance(acc sdk.AccAddress, denom string) sdk.Coin {
-	return chain.GetTestSupport().BankKeeper().GetBalance(chain.GetContext(), acc, denom)
+	return chain.App.(*wasmd.WasmApp).BankKeeper().GetBalance(chain.GetContext(), acc, denom)
 }
 
 func (chain *TestChain) AllBalances(acc sdk.AccAddress) sdk.Coins {
-	return chain.GetTestSupport().BankKeeper().GetAllBalances(chain.GetContext(), acc)
-}
-
-func (chain TestChain) GetTestSupport() *wasmd.TestSupport {
-	return chain.App.(*TestingAppDecorator).TestSupport()
-}
-
-var _ ibctesting.TestingApp = TestingAppDecorator{}
-
-type TestingAppDecorator struct {
-	*wasmd.WasmApp
-	t *testing.T
-}
-
-func NewTestingAppDecorator(t *testing.T, wasmApp *wasmd.WasmApp) *TestingAppDecorator {
-	return &TestingAppDecorator{WasmApp: wasmApp, t: t}
-}
-
-func (a TestingAppDecorator) GetBaseApp() *baseapp.BaseApp {
-	return a.TestSupport().GetBaseApp()
-}
-
-func (a TestingAppDecorator) GetStakingKeeper() stakingkeeper.Keeper {
-	return a.TestSupport().StakingKeeper()
-}
-
-func (a TestingAppDecorator) GetIBCKeeper() *ibckeeper.Keeper {
-	return a.TestSupport().IBCKeeper()
-}
-
-func (a TestingAppDecorator) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
-	return a.TestSupport().ScopeIBCKeeper()
-}
-
-func (a TestingAppDecorator) GetTxConfig() client.TxConfig {
-	return a.TestSupport().GetTxConfig()
-}
-
-func (a TestingAppDecorator) TestSupport() *wasmd.TestSupport {
-	return wasmd.NewTestSupport(a.t, a.WasmApp)
+	return chain.App.(*wasmd.WasmApp).BankKeeper().GetAllBalances(chain.GetContext(), acc)
 }
