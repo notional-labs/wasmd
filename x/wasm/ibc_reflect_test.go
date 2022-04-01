@@ -17,6 +17,10 @@ import (
 	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
 )
 
+// func FundMsg(contractPortID, contractConnectionID) []byte {
+
+// }
+
 func MakeFundIbcGammContractTx(channelId, remoteGammContract string) []byte {
 	msgStr := fmt.Sprintf(`{"ibc_fund_gamm_contract": {"channel_id": "%s", "remote_gamm_contract_address": "%s"}}`,
 		channelId,
@@ -166,6 +170,28 @@ func TestIBCReflectContract(t *testing.T) {
 	assets := []gammtypes.PoolAsset{asset1, asset2}
 	FundOsmoForAcc(osmosisApp, osmosisChain, osmosisContractAddr)
 
+	_, err = osmosisApp.GAMMKeeper.CreateBalancerPool(osmosisChain.GetContext(), osmosisContractAddr, poolParams, assets, osmosisContractAddr.String())
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(osmosisApp.BankKeeper.GetAllBalances(osmosisChain.GetContext(), osmosisContractAddr))
+
+	spotPriceQuery := MakeSpotPriceQueryTx(
+		ibcGammPath.EndpointB.ChannelID,
+		"1",
+		"ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828",
+		"stake",
+		"true",
+	)
+
+	wasmChain.ExecuteContract(junoContractAddr.String(), spotPriceQuery)
+
+	err = coordinator.RelayAndAckPendingPackets(ibcGammPath)
+
+	if err != nil {
+		panic(err)
+	}
+
 	setIbcDenomForContractTx := MakeSetIbcDenomTx("ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828", transferPath.EndpointA.ChannelID, "test")
 
 	_, ev := osmosisChain.ExecuteContract(osmosisContractAddr.String(), setIbcDenomForContractTx)
@@ -174,12 +200,6 @@ func TestIBCReflectContract(t *testing.T) {
 			fmt.Println(i.String())
 		}
 	}
-
-	_, err = osmosisApp.GAMMKeeper.CreateBalancerPool(osmosisChain.GetContext(), osmosisContractAddr, poolParams, assets, osmosisContractAddr.String())
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(osmosisApp.BankKeeper.GetAllBalances(osmosisChain.GetContext(), osmosisContractAddr))
 
 	ibcSwapMsg := MakeSwapTx(ibcGammPath.EndpointB.ChannelID,
 		"1",
@@ -208,7 +228,7 @@ func TestIBCReflectContract(t *testing.T) {
 
 	osmosisApp.GRPCQueryRouter().Route("")
 
-	spotPriceQuery := MakeSpotPriceQueryTx(
+	spotPriceQuery = MakeSpotPriceQueryTx(
 		ibcGammPath.EndpointB.ChannelID,
 		"1",
 		"ibc/1A757F169E3BB799B531736E060340FF68F37CBCEA881A147D83F84F7D87E828",
