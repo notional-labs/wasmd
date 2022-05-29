@@ -1,6 +1,7 @@
 package wasm_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -60,6 +61,10 @@ func TestIBCReflectContract(t *testing.T) {
 		Version: "ibc-reflect-v1",
 		Order:   channeltypes.ORDERED,
 	}
+	path.EndpointA.Counterparty = path.EndpointB
+	path.EndpointB.Counterparty = path.EndpointA
+	fmt.Println("A counterparty version", path.EndpointA.Counterparty.ChannelConfig.Version)
+	fmt.Println("B counterparty version", path.EndpointB.Counterparty.ChannelConfig.Version)
 
 	coordinator.SetupConnections(path)
 	coordinator.CreateChannels(path)
