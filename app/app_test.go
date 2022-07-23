@@ -16,8 +16,8 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 )
 
-var emptyWasmOpts []wasm.Option = nil
-var enabeledProposals []wasm.ProposalType = nil
+var emptyWasmOpts []wasm.Option
+var enabeledProposals []wasm.ProposalType
 
 func TestSimAppExportAndBlockedAddrs(t *testing.T) {
 	encCfg := MakeEncodingConfig()
@@ -103,7 +103,7 @@ func TestGetEnabledProposals(t *testing.T) {
 }
 
 func setGenesis(gapp *WasmApp) error {
-	genesisState := NewDefaultGenesisState()
+	genesisState := NewDefaultGenesisState(gapp.appCodec)
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	if err != nil {
 		return err

@@ -38,7 +38,7 @@ func setup(db dbm.DB, withGenesis bool, invCheckPeriod uint, opts ...wasm.Option
 	encodingConfig := app.MakeEncodingConfig()
 	wasmApp := app.NewWasmApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, app.DefaultNodeHome, invCheckPeriod, encodingConfig, wasm.EnableAllProposals, app.EmptyBaseAppOptions{}, opts)
 	if withGenesis {
-		return wasmApp, app.NewDefaultGenesisState()
+		return wasmApp, app.NewDefaultGenesisState(encodingConfig.Codec)
 	}
 	return wasmApp, app.GenesisState{}
 }

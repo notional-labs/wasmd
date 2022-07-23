@@ -106,7 +106,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string, opts ...wasm
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
 	}
 
-	app := NewTestingAppDecorator(t, wasmd.SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, opts, balance))
+	app := NewTestingAppDecorator(t, wasmd.SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, balance))
 
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -246,7 +246,7 @@ func (chain *TestChain) SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error) {
 	// ensure the chain has the latest time
 	chain.Coordinator.UpdateTimeForChain(chain)
 
-	_, r, err := wasmd.SignAndDeliver(
+	_, r, err := wasmd.SignCheckDeliver(
 		chain.t,
 		chain.TxConfig,
 		chain.App.GetBaseApp(),

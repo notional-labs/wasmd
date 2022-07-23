@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/CosmWasm/wasmd/app/params"
+	"github.com/cosmos/cosmos-sdk/snapshots"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/cosmos/ibc-go/v5/testing/mock"
@@ -38,6 +41,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	storetypes "github.com/cosmos/cosmos-sdk/x/store/types"
 )
 
 // DefaultConsensusParams defines the default Tendermint consensus params used in
@@ -59,11 +63,25 @@ var DefaultConsensusParams = &abci.ConsensusParams{
 	},
 }
 
-func setup(withGenesis bool, invCheckPeriod uint, wasmopts ...wasm.Option) (*WasmApp, GenesisState) {
+func setup(withGenesis bool, invCheckPeriod uint) (*WasmApp, GenesisState) {
 	db := dbm.NewMemDB()
-	app := NewWasmApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, invCheckPeriod, MakeEncodingConfig(), wasm.EnableAllProposals, EmptyBaseAppOptions{}, wasmopts)
+	encCdc := MakeEncodingConfig()
+	var emptyWasmOpts []wasm.Option
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	options := SetupOptions{
+		Logger:             logger,
+		DB:                 db,
+		InvCheckPeriod:     0,
+		EncConfig:          encCdc,
+		EnabeledProposals:  wasm.EnableAllProposals,
+		HomePath:           DefaultNodeHome,
+		SkipUpgradeHeights: map[int64]bool{},
+		AppOpts:            EmptyBaseAppOptions{},
+		WasmOpts:           emptyWasmOpts,
+	}
+	app := NewWasmApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, invCheckPeriod, encCdc, wasm.EnableAllProposals, options.AppOpts, options.WasmOpts)
 	if withGenesis {
-		return app, NewDefaultGenesisState()
+		return app, NewDefaultGenesisState(encCdc.Codec)
 	}
 	return app, GenesisState{}
 }
@@ -91,63 +109,15 @@ func Setup(isCheckTx bool) *WasmApp {
 	return app
 }
 
-// SetupWithGenesisValSet initializes a new WasmApp with a validator set and genesis accounts
+// SetupWithGenesisValSet initializes a new SimApp with a validator set and genesis accounts
 // that also act as delegators. For simplicity, each validator is bonded with a delegation
-// of one consensus engine unit (10^6) in the default token of the WasmApp from first genesis
-// account. A Nop logger is set in WasmApp.
-func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, opts []wasm.Option, balances ...banktypes.Balance) *WasmApp {
-	app, genesisState := setup(true, 5, opts...)
-	// set genesis accounts
-	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
-	genesisState[authtypes.ModuleName] = app.appCodec.MustMarshalJSON(authGenesis)
+// of one consensus engine unit in the default token of the simapp from first genesis
+// account. A Nop logger is set in SimApp.
+func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, balances ...banktypes.Balance) *WasmApp {
+	t.Helper()
 
-	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
-	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
-
-	bondAmt := sdk.NewInt(1000000)
-
-	for _, val := range valSet.Validators {
-		pk, err := cryptocodec.FromTmPubKeyInterface(val.PubKey)
-		require.NoError(t, err)
-		pkAny, err := codectypes.NewAnyWithValue(pk)
-		require.NoError(t, err)
-		validator := stakingtypes.Validator{
-			OperatorAddress:   sdk.ValAddress(val.Address).String(),
-			ConsensusPubkey:   pkAny,
-			Jailed:            false,
-			Status:            stakingtypes.Bonded,
-			Tokens:            bondAmt,
-			DelegatorShares:   sdk.OneDec(),
-			Description:       stakingtypes.Description{},
-			UnbondingHeight:   int64(0),
-			UnbondingTime:     time.Unix(0, 0).UTC(),
-			Commission:        stakingtypes.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-			MinSelfDelegation: sdk.ZeroInt(),
-		}
-		validators = append(validators, validator)
-		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress(), val.Address.Bytes(), sdk.OneDec()))
-
-	}
-
-	// set validators and delegations
-	stakingGenesis := stakingtypes.NewGenesisState(stakingtypes.DefaultParams(), validators, delegations)
-	genesisState[stakingtypes.ModuleName] = app.appCodec.MustMarshalJSON(stakingGenesis)
-
-	totalSupply := sdk.NewCoins()
-	for _, b := range balances {
-		// add genesis acc tokens and delegated tokens to total supply
-		totalSupply = totalSupply.Add(b.Coins.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))...)
-	}
-
-	// add bonded amount to bonded pool module account
-	balances = append(balances, banktypes.Balance{
-		Address: authtypes.NewModuleAddress(stakingtypes.BondedPoolName).String(),
-		Coins:   sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, bondAmt)},
-	})
-
-	// update total supply
-	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{})
-	genesisState[banktypes.ModuleName] = app.appCodec.MustMarshalJSON(bankGenesis)
+	app, genesisState := setup(true, 5)
+	genesisState = genesisStateWithValSet(t, app, genesisState, valSet, genAccs, balances...)
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	require.NoError(t, err)
@@ -399,9 +369,8 @@ func NewSimappWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptio
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100000000000000))),
 	}
 
-	var emptyWasmOpts []wasm.Option = nil
-	app := NewWasmApp(options.Logger, options.DB, nil, true, options.SkipUpgradeHeights, options.HomePath, options.InvCheckPeriod, MakeEncodingConfig(), wasm.EnableAllProposals, EmptyBaseAppOptions{}, emptyWasmOpts)
-	genesisState := NewDefaultGenesisState()
+	app := NewWasmApp(options.Logger, options.DB, nil, true, options.SkipUpgradeHeights, options.HomePath, options.InvCheckPeriod, MakeEncodingConfig(), wasm.EnableAllProposals, options.AppOpts, options.WasmOpts)
+	genesisState := NewDefaultGenesisState(options.EncConfig.Codec)
 	genesisState = genesisStateWithValSet(t, app, genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
 
 	if !isCheckTx {
@@ -595,4 +564,27 @@ type SetupOptions struct {
 	EnabeledProposals  []wasm.ProposalType
 	AppOpts            types.AppOptions
 	WasmOpts           []wasm.Option
+}
+
+// SetupWithEmptyStore setup a wasmd app instance with empty DB
+func SetupWithEmptyStore(t testing.TB) *WasmApp {
+	var wasmopts []wasm
+	app, _ := setupempty(t, false, 0, wasmopts)
+	return app
+}
+
+func setupempty(t testing.TB, withGenesis bool, invCheckPeriod uint, opts ...wasm.Option) (*WasmApp, GenesisState) {
+	nodeHome := t.TempDir()
+	snapshotDir := filepath.Join(nodeHome, "data", "snapshots")
+	snapshotDB, err := sdk.NewLevelDB("metadata", snapshotDir)
+	require.NoError(t, err)
+	snapshotStore, err := snapshots.NewStore(snapshotDB, snapshotDir)
+	require.NoError(t, err)
+	baseAppOpts := []func(*bam.BaseApp){storetypes.SetSnapshotStore(snapshotStore), storetypes.SetSnapshotKeepRecent(2)}
+	db := dbm.NewMemDB()
+	app := NewWasmApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, nodeHome, invCheckPeriod, MakeEncodingConfig(), wasm.EnableAllProposals, EmptyBaseAppOptions{}, opts, baseAppOpts...)
+	if withGenesis {
+		return app, NewDefaultGenesisState()
+	}
+	return app, GenesisState{}
 }
