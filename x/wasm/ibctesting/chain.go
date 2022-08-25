@@ -9,7 +9,6 @@ import (
 
 	tmprotoversion "github.com/tendermint/tendermint/proto/tendermint/version"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -20,7 +19,6 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	clienttypes "github.com/cosmos/ibc-go/v5/modules/core/02-client/types"
@@ -28,7 +26,6 @@ import (
 	commitmenttypes "github.com/cosmos/ibc-go/v5/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v5/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v5/modules/core/exported"
-	ibckeeper "github.com/cosmos/ibc-go/v5/modules/core/keeper"
 	"github.com/cosmos/ibc-go/v5/modules/core/types"
 	ibctmtypes "github.com/cosmos/ibc-go/v5/modules/light-clients/07-tendermint/types"
 	ibctesting "github.com/cosmos/ibc-go/v5/testing"
@@ -544,18 +541,6 @@ func (chain *TestChain) GetChannelCapability(portID, channelID string) *capabili
 	return cap
 }
 
-func (chain *TestChain) Balance(acc sdk.AccAddress, denom string) sdk.Coin {
-	return chain.GetTestSupport().BankKeeper().GetBalance(chain.GetContext(), acc, denom)
-}
-
-func (chain *TestChain) AllBalances(acc sdk.AccAddress) sdk.Coins {
-	return chain.GetTestSupport().BankKeeper().GetAllBalances(chain.GetContext(), acc)
-}
-
-func (chain TestChain) GetTestSupport() *wasmd.TestSupport {
-	return chain.App.(*TestingAppDecorator).TestSupport()
-}
-
 var _ ibctesting.TestingApp = TestingAppDecorator{}
 
 type TestingAppDecorator struct {
@@ -565,34 +550,6 @@ type TestingAppDecorator struct {
 
 func NewTestingAppDecorator(t *testing.T, wasmApp *wasmd.WasmApp) *TestingAppDecorator {
 	return &TestingAppDecorator{WasmApp: wasmApp, t: t}
-}
-
-func (a TestingAppDecorator) GetBaseApp() *baseapp.BaseApp {
-	return a.TestSupport().GetBaseApp()
-}
-
-func (a TestingAppDecorator) AppCodec() codec.Codec {
-	return a.TestSupport().AppCodec()
-}
-
-func (a TestingAppDecorator) GetStakingKeeper() stakingkeeper.Keeper {
-	return a.TestSupport().StakingKeeper()
-}
-
-func (a TestingAppDecorator) GetIBCKeeper() *ibckeeper.Keeper {
-	return a.TestSupport().IBCKeeper()
-}
-
-func (a TestingAppDecorator) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
-	return a.TestSupport().ScopeIBCKeeper()
-}
-
-func (a TestingAppDecorator) GetTxConfig() client.TxConfig {
-	return a.TestSupport().GetTxConfig()
-}
-
-func (a TestingAppDecorator) TestSupport() *wasmd.TestSupport {
-	return wasmd.NewTestSupport(a.t, a.WasmApp)
 }
 
 func MakeCommit(ctx context.Context, blockID tmtypes.BlockID, height int64, round int32, voteSet *tmtypes.VoteSet, validators []tmtypes.PrivValidator, now time.Time) (*tmtypes.Commit, error) {
