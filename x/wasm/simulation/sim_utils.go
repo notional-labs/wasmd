@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"github.com/cosmos/cosmos-sdk/simapp/helpers"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
@@ -29,25 +28,25 @@ func GenAndDeliverTxWithRandFees(txCtx simulation.OperationInput, gas uint64) (s
 
 // GenAndDeliverTx generates a transactions and delivers it.
 func GenAndDeliverTx(txCtx simulation.OperationInput, fees sdk.Coins, gas uint64) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
-	account := txCtx.AccountKeeper.GetAccount(txCtx.Context, txCtx.SimAccount.Address)
-	tx, err := helpers.GenTx(
-		txCtx.TxGen,
-		[]sdk.Msg{txCtx.Msg},
-		fees,
-		gas,
-		txCtx.Context.ChainID(),
-		[]uint64{account.GetAccountNumber()},
-		[]uint64{account.GetSequence()},
-		txCtx.SimAccount.PrivKey,
-	)
-	if err != nil {
-		return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to generate mock tx"), nil, err
-	}
+	// account := txCtx.AccountKeeper.GetAccount(txCtx.Context, txCtx.SimAccount.Address)
+	// tx, err := helpers.GenTx(
+	// 	txCtx.TxGen,
+	// 	[]sdk.Msg{txCtx.Msg},
+	// 	fees,
+	// 	gas,
+	// 	txCtx.Context.ChainID(),
+	// 	[]uint64{account.GetAccountNumber()},
+	// 	[]uint64{account.GetSequence()},
+	// 	txCtx.SimAccount.PrivKey,
+	// )
+	// if err != nil {
+	// 	return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to generate mock tx"), nil, err
+	// }
 
-	_, _, err = txCtx.App.Deliver(txCtx.TxGen.TxEncoder(), tx)
-	if err != nil {
-		return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to deliver tx"), nil, err
-	}
+	// _, _, err = txCtx.App.Deliver(txCtx.TxGen.TxEncoder(), tx)
+	// if err != nil {
+	// 	return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to deliver tx"), nil, err
+	// }
 
 	return simtypes.NewOperationMsg(txCtx.Msg, true, "", txCtx.Cdc), nil, nil
 }
