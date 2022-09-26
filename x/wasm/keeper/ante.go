@@ -123,7 +123,7 @@ func (a ContractGasTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			}
 
 			if gasTx.GetGas() > 500000 {
-				return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Gas in Execute or Instantiate contract should be lower than 500000")
+				return ctx, sdkerrors.Wrap(types.ErrInvalid, "Gas in Execute or Instantiate contract should be lower than 500000")
 			}
 		}
 	}
