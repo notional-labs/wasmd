@@ -3,9 +3,11 @@ package keeper
 import (
 	"encoding/binary"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/CosmWasm/wasmd/x/wasm/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
+	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 )
 
 // CountTXDecorator ante handler to count the tx position in a block.
@@ -91,6 +93,39 @@ func (d LimitSimulationGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 	// default to max block gas when set, to be on the safe side
 	if maxGas := ctx.ConsensusParams().GetBlock().MaxGas; maxGas > 0 {
 		return next(ctx.WithGasMeter(sdk.NewGasMeter(sdk.Gas(maxGas))), tx, simulate)
+	}
+	return next(ctx, tx, simulate)
+}
+
+// ContractGasTXDecorator ante handler to Execute && Instantiate gas limit.
+type ContractGasTXDecorator struct {
+}
+
+// NewContractGasTXDecorator constructor
+func NewContractGasTXDecorator() *ContractGasTXDecorator {
+	return &ContractGasTXDecorator{}
+}
+
+// AnteHandle handler stores a tx counter with current height encoded in the store to let the app handle
+// global rollback behavior instead of keeping state in the handler itself.
+// The ante handler passes the counter value via sdk.Context upstream. See `types.TXCounter(ctx)` to read the value.
+// Simulations don't get a tx counter value assigned.
+func (a ContractGasTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	if simulate {
+		return next(ctx, tx, simulate)
+	}
+
+	for _, msg := range tx.GetMsgs() {
+		if sdk.MsgTypeURL(msg) == "/cosmwasm.wasm.v1.MsgInstantiateContract" || sdk.MsgTypeURL(msg) == "/cosmwasm.wasm.v1.MsgExecuteContract" {
+			gasTx, ok := tx.(authante.GasTx)
+			if !ok {
+				return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be GasTx")
+			}
+
+			if gasTx.GetGas() > 500000 {
+				return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Gas in Execute or Instantiate contract should be lower than 500000")
+			}
+		}
 	}
 	return next(ctx, tx, simulate)
 }
