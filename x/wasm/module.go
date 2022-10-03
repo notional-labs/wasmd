@@ -267,10 +267,10 @@ func getExpectedLibwasmVersion() string {
 			continue
 		}
 		if d.Replace != nil {
-			fmt.Printf("%s@%s => %s@%s\n", d.Path, d.Version, d.Replace.Path, d.Replace.Version)
+			return fmt.Sprintf(d.Replace.Version)
 
 		}
-		return fmt.Sprintf("%s\n", d.Version)
+		return fmt.Sprintf(d.Version)
 	}
 	return ""
 }
