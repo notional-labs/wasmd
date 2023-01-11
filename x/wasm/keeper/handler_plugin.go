@@ -174,9 +174,23 @@ func (h IBCRawPacketHandler) DispatchMsg(ctx sdk.Context, _ sdk.AccAddress, cont
 	if !ok {
 		return nil, nil, sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
+	packet := channeltypes.NewPacket(
+		msg.IBC.SendPacket.Data,
+		sequence,
+		contractIBCPortID,
+		contractIBCChannelID,
+		channelInfo.Counterparty.PortId,
+		channelInfo.Counterparty.ChannelId,
+		ConvertWasmIBCTimeoutHeightToCosmosHeight(msg.IBC.SendPacket.Timeout.Block),
+		msg.IBC.SendPacket.Timeout.Timestamp,
+	)
+	if err := h.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
+		return nil, nil, sdkerrors.Wrap(err, "failed to send packet")
+	}
 
-	_, err = h.channelKeeper.SendPacket(ctx, channelCap, contractIBCPortID, contractIBCChannelID, ConvertWasmIBCTimeoutHeightToCosmosHeight(msg.IBC.SendPacket.Timeout.Block), msg.IBC.SendPacket.Timeout.Timestamp, msg.IBC.SendPacket.Data)
-	return nil, nil, err
+	// Encode the sequence in big endian order and append it to data so that it can be retrieved by contract
+	data = append(data, sdk.Uint64ToBigEndian(sequence))
+	return
 }
 
 var _ Messenger = MessageHandlerFunc(nil)
