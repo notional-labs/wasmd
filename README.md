@@ -1,7 +1,5 @@
+# Notional Wasm Zone
 
-# Wasm Zone
-
-[![CircleCI](https://circleci.com/gh/CosmWasm/wasmd/tree/main.svg?style=shield)](https://circleci.com/gh/CosmWasm/wasmd/tree/main)
 [![codecov](https://codecov.io/gh/cosmwasm/wasmd/branch/main/graph/badge.svg)](https://codecov.io/gh/cosmwasm/wasmd)
 [![Go Report Card](https://goreportcard.com/badge/github.com/CosmWasm/wasmd)](https://goreportcard.com/report/github.com/CosmWasm/wasmd)
 [![license](https://img.shields.io/github/license/CosmWasm/wasmd.svg)](https://github.com/CosmWasm/wasmd/blob/main/LICENSE)
@@ -13,6 +11,13 @@ This repository hosts `Wasmd`, the first implementation of a cosmos zone with wa
 This code was forked from the `cosmos/gaia` repository as a basis and then we added `x/wasm` and cleaned up 
 many gaia-specific files. However, the `wasmd` binary should function just like `gaiad` except for the
 addition of the `x/wasm` module.
+
+After the original repository was developed, Notional wanted more:
+
+* token factory by default
+* github actions for code quality checks
+* SDK 46 and 47
+* composable's virtual machine fork
 
 **Note**: Requires [Go 1.19+](https://golang.org/dl/)
 
