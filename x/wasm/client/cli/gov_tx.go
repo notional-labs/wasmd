@@ -371,7 +371,8 @@ func ProposalStoreAndInstantiateContractCmd() *cobra.Command {
 					if err != nil {
 						return fmt.Errorf("admin %s", err)
 					}
-					adminStr = info.GetAddress().String()
+					adminnotstr, err := info.GetAddress()
+					adminStr = adminnotstr.String()
 				} else {
 					adminStr = addr.String()
 				}

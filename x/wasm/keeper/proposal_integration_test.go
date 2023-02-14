@@ -112,6 +112,7 @@ func TestInstantiateProposal(t *testing.T) {
 	})
 	em := sdk.NewEventManager()
 
+	// 46ify
 	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
 	msgContent, err := govv1.NewLegacyContent(src, myActorAddress)
 	require.NoError(t, err)
@@ -183,13 +184,18 @@ func TestInstantiate2Proposal(t *testing.T) {
 
 	em := sdk.NewEventManager()
 
+	// 46ify
+	myActorAddress := govKeeper.GetGovernanceAccount(ctx).GetAddress().String()
+	msgContent, err := govv1.NewLegacyContent(src, myActorAddress)
+	require.NoError(t, err)
+
 	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, src)
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, "testing 123") //TODO: the original executes the stored proposal
 	require.NoError(t, err)
 
 	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx.WithEventManager(em), storedProposal.GetContent())
+	handler := govKeeper.LegacyRouter().GetRoute(src.ProposalRoute())
+	err = handler(ctx.WithEventManager(em), src)
 	require.NoError(t, err)
 
 	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddress)
