@@ -32,6 +32,15 @@ linters:
 
 issues:
   exclude-rules:
+    - text: "sdkerrors.ABCIInfo is deprecated"
+      linters:
+        - staticcheck
+    - text: "sdkerrors.IsOf is deprecated"
+      linters:
+        - staticcheck
+    - text: "sdkErrors.Register is deprecated"
+      linters:
+        - staticcheck
     - text: "use RegisterServices"
       linters:
         - staticcheck

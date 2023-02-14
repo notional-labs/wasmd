@@ -224,8 +224,8 @@ func ProposalInstantiateContractCmd() *cobra.Command {
 	cmd.Flags().Bool(flagNoAdmin, false, "You must set this explicitly if you don't want an admin")
 
 	// proposal flags
-	cmd.Flags().String(cli.FlagTitle, "", "Title of proposal")
-	cmd.Flags().String(cli.FlagDescription, "", "Description of proposal")
+	cmd.Flags().String(cli.FlagTitle, "", "Title of proposal")             //nolint:staticcheck
+	cmd.Flags().String(cli.FlagDescription, "", "Description of proposal") //nolint:staticcheck
 	cmd.Flags().String(cli.FlagDeposit, "", "Deposit of proposal")
 	return cmd
 }
@@ -372,6 +372,9 @@ func ProposalStoreAndInstantiateContractCmd() *cobra.Command {
 						return fmt.Errorf("admin %s", err)
 					}
 					adminnotstr, err := info.GetAddress()
+					if err != nil {
+						return fmt.Errorf("admin %s", err)
+					}
 					adminStr = adminnotstr.String()
 				} else {
 					adminStr = addr.String()

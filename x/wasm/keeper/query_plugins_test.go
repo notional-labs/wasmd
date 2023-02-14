@@ -449,7 +449,7 @@ func TestContractInfoWasmQuerier(t *testing.T) {
 }
 
 func TestCodeInfoWasmQuerier(t *testing.T) {
-	myCreatorAddr := keeper.RandomBech32AccountAddress(t)
+	myCreatorAddr := RandomBech32AccountAddress(t)
 	var ctx sdk.Context
 
 	myRawChecksum := []byte("myHash78901234567890123456789012")
@@ -501,7 +501,7 @@ func TestCodeInfoWasmQuerier(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			q := keeper.WasmQuerier(spec.mock)
+			q := WasmQuerier(spec.mock)
 			gotBz, gotErr := q(ctx, spec.req)
 			if spec.expErr {
 				require.Error(t, gotErr)

@@ -170,8 +170,8 @@ func TestInstantiate2Proposal(t *testing.T) {
 	var (
 		oneAddress   sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
 		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
-		label        string         = "label"
-		salt         []byte         = []byte("mySalt")
+		label                       = "label"
+		salt                        = []byte("mySalt")
 	)
 	src := types.InstantiateContract2ProposalFixture(func(p *types.InstantiateContract2Proposal) {
 		p.CodeID = firstCodeID
@@ -190,7 +190,7 @@ func TestInstantiate2Proposal(t *testing.T) {
 	require.NoError(t, err)
 
 	// when stored
-	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, "testing 123") //TODO: the original executes the stored proposal
+	_, err = govKeeper.SubmitProposal(ctx, []sdk.Msg{msgContent}, "testing 123") // TODO: the original executes the stored proposal
 	require.NoError(t, err)
 
 	// and proposal execute
@@ -1058,4 +1058,4 @@ func TestUpdateInstantiateConfigProposal(t *testing.T) {
 	}
 }
 
-//TODO: is there a bug in this file?  We execute the proposal, not the stored proposal.
+// TODO: is there a bug in this file?  We execute the proposal, not the stored proposal.
