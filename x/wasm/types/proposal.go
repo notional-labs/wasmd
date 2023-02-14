@@ -17,6 +17,7 @@ type ProposalType string
 const (
 	ProposalTypeStoreCode                           ProposalType = "StoreCode"
 	ProposalTypeInstantiateContract                 ProposalType = "InstantiateContract"
+	ProposalTypeInstantiateContract2                ProposalType = "InstantiateContract2"
 	ProposalTypeMigrateContract                     ProposalType = "MigrateContract"
 	ProposalTypeSudoContract                        ProposalType = "SudoContract"
 	ProposalTypeExecuteContract                     ProposalType = "ExecuteContract"
@@ -35,6 +36,7 @@ var DisableAllProposals []ProposalType
 var EnableAllProposals = []ProposalType{
 	ProposalTypeStoreCode,
 	ProposalTypeInstantiateContract,
+	ProposalTypeInstantiateContract2,
 	ProposalTypeMigrateContract,
 	ProposalTypeSudoContract,
 	ProposalTypeExecuteContract,
@@ -272,6 +274,114 @@ func (p InstantiateContractProposal) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
+func NewInstantiateContract2Proposal(
+	title string,
+	description string,
+	runAs string,
+	admin string,
+	codeID uint64,
+	label string,
+	msg RawContractMessage,
+	funds sdk.Coins,
+	salt []byte,
+	fixMsg bool,
+) *InstantiateContract2Proposal {
+	return &InstantiateContract2Proposal{title, description, runAs, admin, codeID, label, msg, funds, salt, fixMsg}
+}
+
+// ProposalRoute returns the routing key of a parameter change proposal.
+func (p InstantiateContract2Proposal) ProposalRoute() string { return RouterKey }
+
+// GetTitle returns the title of the proposal
+func (p *InstantiateContract2Proposal) GetTitle() string { return p.Title }
+
+// GetDescription returns the human readable description of the proposal
+func (p InstantiateContract2Proposal) GetDescription() string { return p.Description }
+
+// ProposalType returns the type
+func (p InstantiateContract2Proposal) ProposalType() string {
+	return string(ProposalTypeInstantiateContract2)
+}
+
+// ValidateBasic validates the proposal
+func (p InstantiateContract2Proposal) ValidateBasic() error {
+	// Validate title and description
+	if err := validateProposalCommons(p.Title, p.Description); err != nil {
+		return err
+	}
+	// Validate run as
+	if _, err := sdk.AccAddressFromBech32(p.RunAs); err != nil {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "run as")
+	}
+	// Validate admin
+	if len(p.Admin) != 0 {
+		if _, err := sdk.AccAddressFromBech32(p.Admin); err != nil {
+			return err
+		}
+	}
+	// Validate codeid
+	if p.CodeID == 0 {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "code id is required")
+	}
+	// Validate label
+	if err := ValidateLabel(p.Label); err != nil {
+		return err
+	}
+	// Validate msg
+	if err := p.Msg.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "payload msg")
+	}
+	// Validate funds
+	if !p.Funds.IsValid() {
+		return sdkerrors.ErrInvalidCoins
+	}
+	// Validate salt
+	if len(p.Salt) == 0 {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "salt is required")
+	}
+	return nil
+}
+
+// String implements the Stringer interface.
+func (p InstantiateContract2Proposal) String() string {
+	return fmt.Sprintf(`Instantiate Code Proposal:
+  Title:       %s
+  Description: %s
+  Run as:      %s
+  Admin:       %s
+  Code id:     %d
+  Label:       %s
+  Msg:         %q
+  Funds:       %s
+  Salt:        %X
+`, p.Title, p.Description, p.RunAs, p.Admin, p.CodeID, p.Label, p.Msg, p.Funds, p.Salt)
+}
+
+// MarshalYAML pretty prints the init message
+func (p InstantiateContract2Proposal) MarshalYAML() (interface{}, error) {
+	return struct {
+		Title       string    `yaml:"title"`
+		Description string    `yaml:"description"`
+		RunAs       string    `yaml:"run_as"`
+		Admin       string    `yaml:"admin"`
+		CodeID      uint64    `yaml:"code_id"`
+		Label       string    `yaml:"label"`
+		Msg         string    `yaml:"msg"`
+		Funds       sdk.Coins `yaml:"funds"`
+		Salt        string    `yaml:"salt"`
+	}{
+		Title:       p.Title,
+		Description: p.Description,
+		RunAs:       p.RunAs,
+		Admin:       p.Admin,
+		CodeID:      p.CodeID,
+		Label:       p.Label,
+		Msg:         string(p.Msg),
+		Funds:       p.Funds,
+		Salt:        base64.StdEncoding.EncodeToString(p.Salt),
+	}, nil
+}
+
 func NewStoreAndInstantiateContractProposal(
 	title string,
 	description string,
@@ -412,6 +522,22 @@ func (p StoreAndInstantiateContractProposal) MarshalYAML() (interface{}, error) 
 	}, nil
 }
 
+func NewMigrateContractProposal(
+	title string,
+	description string,
+	contract string,
+	codeID uint64,
+	msg RawContractMessage,
+) *MigrateContractProposal {
+	return &MigrateContractProposal{
+		Title:       title,
+		Description: description,
+		Contract:    contract,
+		CodeID:      codeID,
+		Msg:         msg,
+	}
+}
+
 // ProposalRoute returns the routing key of a parameter change proposal.
 func (p MigrateContractProposal) ProposalRoute() string { return RouterKey }
 
@@ -467,6 +593,20 @@ func (p MigrateContractProposal) MarshalYAML() (interface{}, error) {
 		CodeID:      p.CodeID,
 		Msg:         string(p.Msg),
 	}, nil
+}
+
+func NewSudoContractProposal(
+	title string,
+	description string,
+	contract string,
+	msg RawContractMessage,
+) *SudoContractProposal {
+	return &SudoContractProposal{
+		Title:       title,
+		Description: description,
+		Contract:    contract,
+		Msg:         msg,
+	}
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -679,6 +819,18 @@ func (p ClearAdminProposal) String() string {
 `, p.Title, p.Description, p.Contract)
 }
 
+func NewPinCodesProposal(
+	title string,
+	description string,
+	codeIDs []uint64,
+) *PinCodesProposal {
+	return &PinCodesProposal{
+		Title:       title,
+		Description: description,
+		CodeIDs:     codeIDs,
+	}
+}
+
 // ProposalRoute returns the routing key of a parameter change proposal.
 func (p PinCodesProposal) ProposalRoute() string { return RouterKey }
 
@@ -709,6 +861,18 @@ func (p PinCodesProposal) String() string {
   Description: %s
   Codes:       %v
 `, p.Title, p.Description, p.CodeIDs)
+}
+
+func NewUnpinCodesProposal(
+	title string,
+	description string,
+	codeIDs []uint64,
+) *UnpinCodesProposal {
+	return &UnpinCodesProposal{
+		Title:       title,
+		Description: description,
+		CodeIDs:     codeIDs,
+	}
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -763,6 +927,18 @@ func validateProposalCommons(title, description string) error {
 		return sdkerrors.Wrapf(govtypes.ErrInvalidProposalContent, "proposal description is longer than max length of %d", govv1beta1.MaxDescriptionLength)
 	}
 	return nil
+}
+
+func NewUpdateInstantiateConfigProposal(
+	title string,
+	description string,
+	accessConfigUpdates ...AccessConfigUpdate,
+) *UpdateInstantiateConfigProposal {
+	return &UpdateInstantiateConfigProposal{
+		Title:               title,
+		Description:         description,
+		AccessConfigUpdates: accessConfigUpdates,
+	}
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
