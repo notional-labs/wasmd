@@ -73,7 +73,6 @@ var DefaultConsensusParams = &tmproto.ConsensusParams{
 }
 
 func setup(withGenesis bool, invCheckPeriod uint, opts ...wasm.Option) (*WasmApp, GenesisState) {
-
 	t := &testing.T{}
 	db := dbm.NewMemDB()
 	nodeHome := t.TempDir()
