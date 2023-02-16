@@ -157,7 +157,7 @@ func NewTestChainWithValSet(t *testing.T, coord *Coordinator, chainID string, va
 		senderAccs = append(senderAccs, senderAcc)
 	}
 
-	wasmApp := app.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, genBals...)
+	wasmApp := app.SetupWithGenesisValSet(valSet, genAccs, genBals...)
 
 	// create current header and call begin block
 	header := tmproto.Header{

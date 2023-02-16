@@ -68,7 +68,7 @@ func TestSnapshotter(t *testing.T) {
 			assert.NotNil(t, snapshot)
 
 			// when snapshot imported into dest app instance
-			destWasmApp := app.SetupWithEmptyStore(t)
+			destWasmApp := app.SetupWithEmptyStore()
 			require.NoError(t, destWasmApp.SnapshotManager().Restore(*snapshot))
 			for i := uint32(0); i < snapshot.Chunks; i++ {
 				chunkBz, err := srcWasmApp.SnapshotManager().LoadChunk(snapshot.Height, snapshot.Format, i)
@@ -118,7 +118,7 @@ func newWasmExampleApp(t *testing.T) (*app.WasmApp, sdk.AccAddress) {
 	}
 	validator := tmtypes.NewValidator(pubKey, 1)
 	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
-	wasmApp := app.SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, "testing", nil, balance)
+	wasmApp := app.SetupWithGenesisValSet(valSet, []authtypes.GenesisAccount{acc}, balance)
 
 	return wasmApp, senderAddr
 }

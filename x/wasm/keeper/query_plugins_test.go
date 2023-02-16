@@ -564,7 +564,7 @@ func TestQueryErrors(t *testing.T) {
 }
 
 func TestAcceptListStargateQuerier(t *testing.T) {
-	wasmApp := app.SetupWithEmptyStore(t)
+	wasmApp := app.SetupWithEmptyStore()
 	ctx := wasmApp.NewUncachedContext(false, tmproto.Header{ChainID: "foo", Height: 1, Time: time.Now()})
 	err := wasmApp.StakingKeeper.SetParams(ctx, stakingtypes.DefaultParams())
 	require.NoError(t, err)
