@@ -43,6 +43,8 @@ type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
 	// Set an account in the store.
 	SetAccount(ctx sdk.Context, acc authtypes.AccountI)
+	// Gets an account from the module's human readable name.
+	GetModuleAddress(moduleName string) sdk.AccAddress
 }
 
 // DistributionKeeper defines a subset of methods implemented by the cosmos-sdk distribution keeper
