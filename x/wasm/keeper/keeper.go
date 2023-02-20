@@ -269,6 +269,15 @@ func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeIn
 	return nil
 }
 
+func (k Keeper) checkIfFundsAreFromDisallowedModule(ctx sdk.Context, ak types.AccountKeeper, runAs sdk.AccAddress) error {
+	moduleName := "distribution"
+	if runAs.String() == ak.GetModuleAddress(moduleName).String() {
+		return fmt.Errorf("cannot send funds from %s module account", moduleName)
+	}
+
+	return nil
+}
+
 func (k Keeper) instantiate(
 	ctx sdk.Context,
 	codeID uint64,
@@ -335,6 +344,10 @@ func (k Keeper) instantiate(
 	}
 	// deposit initial contract funds
 	if !deposit.IsZero() {
+		if err := k.checkIfFundsAreFromDisallowedModule(ctx, k.accountKeeper, creator); err != nil {
+			return nil, nil, err
+		}
+
 		if err := k.bank.TransferCoins(ctx, creator, contractAddress, deposit); err != nil {
 			return nil, nil, err
 		}
@@ -412,6 +425,10 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 
 	// add more funds
 	if !coins.IsZero() {
+		if err := k.checkIfFundsAreFromDisallowedModule(ctx, k.accountKeeper, caller); err != nil {
+			return nil, err
+		}
+		
 		if err := k.bank.TransferCoins(ctx, caller, contractAddress, coins); err != nil {
 			return nil, err
 		}
