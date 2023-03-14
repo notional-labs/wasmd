@@ -849,7 +849,7 @@ func TestExecute(t *testing.T) {
 	em := sdk.NewEventManager()
 	// when
 	res, err = keepers.ContractKeeper.Execute(ctx.WithEventManager(em), addr, fred, []byte(`{"release":{}}`), topUp)
-	diff := time.Now().Sub(start)
+	diff := time.Since(start)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
