@@ -3,7 +3,6 @@ package types
 import (
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -16,7 +15,7 @@ type QuerierWithCtx interface {
 }
 
 type PrefixStoreInfo struct {
-	Store     store.KVStore
+	Store     wasmvm.KVStore
 	PrefixKey []byte
 }
 
@@ -158,7 +157,7 @@ type WasmerEngine interface {
 	Cleanup()
 
 	// IBCChannelOpen is available on IBC-enabled contracts and is a hook to call into
-	// during the handshake pahse
+	// during the handshake phase
 	IBCChannelOpen(
 		ctx sdk.Context,
 		checksum wasmvm.Checksum,
@@ -173,7 +172,7 @@ type WasmerEngine interface {
 	) (*wasmvmtypes.IBC3ChannelOpenResponse, uint64, error)
 
 	// IBCChannelConnect is available on IBC-enabled contracts and is a hook to call into
-	// during the handshake pahse
+	// during the handshake phase
 	IBCChannelConnect(
 		ctx sdk.Context,
 		checksum wasmvm.Checksum,
@@ -234,7 +233,7 @@ type WasmerEngine interface {
 	) (*wasmvmtypes.IBCBasicResponse, uint64, error)
 
 	// IBCPacketTimeout is available on IBC-enabled contracts and is called when an
-	// outgoing packet (previously sent by this contract) will provably never be executed.
+	// outgoing packet (previously sent by this contract) will probably never be executed.
 	// Usually handled like ack returning an error
 	IBCPacketTimeout(
 		ctx sdk.Context,
@@ -265,4 +264,39 @@ type WasmerEngine interface {
 
 	// SetGasRecorder sets the gas recorder that records contract gas usage
 	SetGasRecorder(gasRecorder ContractGasProcessor)
+}
+
+var _ wasmvm.KVStore = &StoreAdapter{}
+
+// StoreAdapter adapter to bridge SDK store impl to wasmvm
+type StoreAdapter struct {
+	parent sdk.KVStore
+}
+
+// NewStoreAdapter constructor
+func NewStoreAdapter(s sdk.KVStore) *StoreAdapter {
+	if s == nil {
+		panic("store must not be nil")
+	}
+	return &StoreAdapter{parent: s}
+}
+
+func (s StoreAdapter) Get(key []byte) []byte {
+	return s.parent.Get(key)
+}
+
+func (s StoreAdapter) Set(key, value []byte) {
+	s.parent.Set(key, value)
+}
+
+func (s StoreAdapter) Delete(key []byte) {
+	s.parent.Delete(key)
+}
+
+func (s StoreAdapter) Iterator(start, end []byte) wasmvmtypes.Iterator {
+	return s.parent.Iterator(start, end)
+}
+
+func (s StoreAdapter) ReverseIterator(start, end []byte) wasmvmtypes.Iterator {
+	return s.parent.ReverseIterator(start, end)
 }
