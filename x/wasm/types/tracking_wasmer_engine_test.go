@@ -30,9 +30,11 @@ type loggingVMLog struct {
 
 type loggingVMLogs []loggingVMLog
 
-var _ QuerierWithCtx = &testQuerier{}
-var _ BareWasmVM = &loggingVM{}
-var _ ContractGasProcessor = &testGasProcessor{}
+var (
+	_ QuerierWithCtx       = &testQuerier{}
+	_ BareWasmVM           = &loggingVM{}
+	_ ContractGasProcessor = &testGasProcessor{}
+)
 
 type testGasProcessor struct {
 	ingestedRecords []ContractGasRecord

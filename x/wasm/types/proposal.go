@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -13,16 +14,17 @@ import (
 type ProposalType string
 
 const (
-	ProposalTypeStoreCode               ProposalType = "StoreCode"
-	ProposalTypeInstantiateContract     ProposalType = "InstantiateContract"
-	ProposalTypeMigrateContract         ProposalType = "MigrateContract"
-	ProposalTypeSudoContract            ProposalType = "SudoContract"
-	ProposalTypeExecuteContract         ProposalType = "ExecuteContract"
-	ProposalTypeUpdateAdmin             ProposalType = "UpdateAdmin"
-	ProposalTypeClearAdmin              ProposalType = "ClearAdmin"
-	ProposalTypePinCodes                ProposalType = "PinCodes"
-	ProposalTypeUnpinCodes              ProposalType = "UnpinCodes"
-	ProposalTypeUpdateInstantiateConfig ProposalType = "UpdateInstantiateConfig"
+	ProposalTypeStoreCode                           ProposalType = "StoreCode"
+	ProposalTypeInstantiateContract                 ProposalType = "InstantiateContract"
+	ProposalTypeMigrateContract                     ProposalType = "MigrateContract"
+	ProposalTypeSudoContract                        ProposalType = "SudoContract"
+	ProposalTypeExecuteContract                     ProposalType = "ExecuteContract"
+	ProposalTypeUpdateAdmin                         ProposalType = "UpdateAdmin"
+	ProposalTypeClearAdmin                          ProposalType = "ClearAdmin"
+	ProposalTypePinCodes                            ProposalType = "PinCodes"
+	ProposalTypeUnpinCodes                          ProposalType = "UnpinCodes"
+	ProposalTypeUpdateInstantiateConfig             ProposalType = "UpdateInstantiateConfig"
+	ProposalTypeStoreAndInstantiateContractProposal ProposalType = "StoreAndInstantiateContract"
 )
 
 // DisableAllProposals contains no wasm gov types.
@@ -40,6 +42,7 @@ var EnableAllProposals = []ProposalType{
 	ProposalTypePinCodes,
 	ProposalTypeUnpinCodes,
 	ProposalTypeUpdateInstantiateConfig,
+	ProposalTypeStoreAndInstantiateContractProposal,
 }
 
 // ConvertToProposals maps each key to a ProposalType and returns a typed list.
@@ -71,6 +74,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalType(string(ProposalTypePinCodes))
 	govtypes.RegisterProposalType(string(ProposalTypeUnpinCodes))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateInstantiateConfig))
+	govtypes.RegisterProposalType(string(ProposalTypeStoreAndInstantiateContractProposal))
 	govtypes.RegisterProposalTypeCodec(&StoreCodeProposal{}, "wasm/StoreCodeProposal")
 	govtypes.RegisterProposalTypeCodec(&InstantiateContractProposal{}, "wasm/InstantiateContractProposal")
 	govtypes.RegisterProposalTypeCodec(&MigrateContractProposal{}, "wasm/MigrateContractProposal")
@@ -81,6 +85,21 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalTypeCodec(&PinCodesProposal{}, "wasm/PinCodesProposal")
 	govtypes.RegisterProposalTypeCodec(&UnpinCodesProposal{}, "wasm/UnpinCodesProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal")
+	govtypes.RegisterProposalTypeCodec(&StoreAndInstantiateContractProposal{}, "wasm/StoreAndInstantiateContractProposal")
+}
+
+func NewStoreCodeProposal(
+	title string,
+	description string,
+	runAs string,
+	wasmBz []byte,
+	permission *AccessConfig,
+	unpinCode bool,
+	source string,
+	builder string,
+	codeHash []byte,
+) *StoreCodeProposal {
+	return &StoreCodeProposal{title, description, runAs, wasmBz, permission, unpinCode, source, builder, codeHash}
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -104,7 +123,7 @@ func (p StoreCodeProposal) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "run as")
 	}
 
-	if err := validateWasmCode(p.WASMByteCode); err != nil {
+	if err := validateWasmCode(p.WASMByteCode, MaxProposalWasmSize); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "code bytes %s", err.Error())
 	}
 
@@ -112,6 +131,10 @@ func (p StoreCodeProposal) ValidateBasic() error {
 		if err := p.InstantiatePermission.ValidateBasic(); err != nil {
 			return sdkerrors.Wrap(err, "instantiate permission")
 		}
+	}
+
+	if err := ValidateVerificationInfo(p.Source, p.Builder, p.CodeHash); err != nil {
+		return sdkerrors.Wrapf(err, "code verification info")
 	}
 	return nil
 }
@@ -123,7 +146,10 @@ func (p StoreCodeProposal) String() string {
   Description: %s
   Run as:      %s
   WasmCode:    %X
-`, p.Title, p.Description, p.RunAs, p.WASMByteCode)
+  Source:      %s
+  Builder:     %s
+  Code Hash:   %X
+`, p.Title, p.Description, p.RunAs, p.WASMByteCode, p.Source, p.Builder, p.CodeHash)
 }
 
 // MarshalYAML pretty prints the wasm byte code
@@ -134,13 +160,32 @@ func (p StoreCodeProposal) MarshalYAML() (interface{}, error) {
 		RunAs                 string        `yaml:"run_as"`
 		WASMByteCode          string        `yaml:"wasm_byte_code"`
 		InstantiatePermission *AccessConfig `yaml:"instantiate_permission"`
+		Source                string        `yaml:"source"`
+		Builder               string        `yaml:"builder"`
+		CodeHash              string        `yaml:"code_hash"`
 	}{
 		Title:                 p.Title,
 		Description:           p.Description,
 		RunAs:                 p.RunAs,
 		WASMByteCode:          base64.StdEncoding.EncodeToString(p.WASMByteCode),
 		InstantiatePermission: p.InstantiatePermission,
+		Source:                p.Source,
+		Builder:               p.Builder,
+		CodeHash:              hex.EncodeToString(p.CodeHash),
 	}, nil
+}
+
+func NewInstantiateContractProposal(
+	title string,
+	description string,
+	runAs string,
+	admin string,
+	codeID uint64,
+	label string,
+	msg RawContractMessage,
+	funds sdk.Coins,
+) *InstantiateContractProposal {
+	return &InstantiateContractProposal{title, description, runAs, admin, codeID, label, msg, funds}
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -223,6 +268,146 @@ func (p InstantiateContractProposal) MarshalYAML() (interface{}, error) {
 		Label:       p.Label,
 		Msg:         string(p.Msg),
 		Funds:       p.Funds,
+	}, nil
+}
+
+func NewStoreAndInstantiateContractProposal(
+	title string,
+	description string,
+	runAs string,
+	wasmBz []byte,
+	source string,
+	builder string,
+	codeHash []byte,
+	permission *AccessConfig,
+	unpinCode bool,
+	admin string,
+	label string,
+	msg RawContractMessage,
+	funds sdk.Coins,
+) *StoreAndInstantiateContractProposal {
+	return &StoreAndInstantiateContractProposal{
+		Title:                 title,
+		Description:           description,
+		RunAs:                 runAs,
+		WASMByteCode:          wasmBz,
+		Source:                source,
+		Builder:               builder,
+		CodeHash:              codeHash,
+		InstantiatePermission: permission,
+		UnpinCode:             unpinCode,
+		Admin:                 admin,
+		Label:                 label,
+		Msg:                   msg,
+		Funds:                 funds,
+	}
+}
+
+// ProposalRoute returns the routing key of a parameter change proposal.
+func (p StoreAndInstantiateContractProposal) ProposalRoute() string { return RouterKey }
+
+// GetTitle returns the title of the proposal
+func (p *StoreAndInstantiateContractProposal) GetTitle() string { return p.Title }
+
+// GetDescription returns the human readable description of the proposal
+func (p StoreAndInstantiateContractProposal) GetDescription() string { return p.Description }
+
+// ProposalType returns the type
+func (p StoreAndInstantiateContractProposal) ProposalType() string {
+	return string(ProposalTypeStoreAndInstantiateContractProposal)
+}
+
+// ValidateBasic validates the proposal
+func (p StoreAndInstantiateContractProposal) ValidateBasic() error {
+	if err := validateProposalCommons(p.Title, p.Description); err != nil {
+		return err
+	}
+	if _, err := sdk.AccAddressFromBech32(p.RunAs); err != nil {
+		return sdkerrors.Wrap(err, "run as")
+	}
+
+	if err := validateWasmCode(p.WASMByteCode, MaxProposalWasmSize); err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "code bytes %s", err.Error())
+	}
+
+	if err := ValidateVerificationInfo(p.Source, p.Builder, p.CodeHash); err != nil {
+		return sdkerrors.Wrap(err, "code info")
+	}
+
+	if p.InstantiatePermission != nil {
+		if err := p.InstantiatePermission.ValidateBasic(); err != nil {
+			return sdkerrors.Wrap(err, "instantiate permission")
+		}
+	}
+
+	if err := ValidateLabel(p.Label); err != nil {
+		return err
+	}
+
+	if !p.Funds.IsValid() {
+		return sdkerrors.ErrInvalidCoins
+	}
+
+	if len(p.Admin) != 0 {
+		if _, err := sdk.AccAddressFromBech32(p.Admin); err != nil {
+			return err
+		}
+	}
+	if err := p.Msg.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "payload msg")
+	}
+	return nil
+}
+
+// String implements the Stringer interface.
+func (p StoreAndInstantiateContractProposal) String() string {
+	return fmt.Sprintf(`Store And Instantiate Coontract Proposal:
+  Title:       %s
+  Description: %s
+  Run as:      %s
+  WasmCode:    %X
+  Source:      %s
+  Builder:     %s
+  Code Hash:   %X
+  Instantiate permission: %s
+  Unpin code:  %t  
+  Admin:       %s
+  Label:       %s
+  Msg:         %q
+  Funds:       %s
+`, p.Title, p.Description, p.RunAs, p.WASMByteCode, p.Source, p.Builder, p.CodeHash, p.InstantiatePermission, p.UnpinCode, p.Admin, p.Label, p.Msg, p.Funds)
+}
+
+// MarshalYAML pretty prints the wasm byte code and the init message
+func (p StoreAndInstantiateContractProposal) MarshalYAML() (interface{}, error) {
+	return struct {
+		Title                 string        `yaml:"title"`
+		Description           string        `yaml:"description"`
+		RunAs                 string        `yaml:"run_as"`
+		WASMByteCode          string        `yaml:"wasm_byte_code"`
+		Source                string        `yaml:"source"`
+		Builder               string        `yaml:"builder"`
+		CodeHash              string        `yaml:"code_hash"`
+		InstantiatePermission *AccessConfig `yaml:"instantiate_permission"`
+		UnpinCode             bool          `yaml:"unpin_code"`
+		Admin                 string        `yaml:"admin"`
+		Label                 string        `yaml:"label"`
+		Msg                   string        `yaml:"msg"`
+		Funds                 sdk.Coins     `yaml:"funds"`
+	}{
+		Title:                 p.Title,
+		Description:           p.Description,
+		RunAs:                 p.RunAs,
+		WASMByteCode:          base64.StdEncoding.EncodeToString(p.WASMByteCode),
+		InstantiatePermission: p.InstantiatePermission,
+		UnpinCode:             p.UnpinCode,
+		Admin:                 p.Admin,
+		Label:                 p.Label,
+		Source:                p.Source,
+		Builder:               p.Builder,
+		CodeHash:              hex.EncodeToString(p.CodeHash),
+		Msg:                   string(p.Msg),
+		Funds:                 p.Funds,
 	}, nil
 }
 
@@ -334,6 +519,17 @@ func (p SudoContractProposal) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
+func NewExecuteContractProposal(
+	title string,
+	description string,
+	runAs string,
+	contract string,
+	msg RawContractMessage,
+	funds sdk.Coins,
+) *ExecuteContractProposal {
+	return &ExecuteContractProposal{title, description, runAs, contract, msg, funds}
+}
+
 // ProposalRoute returns the routing key of a parameter change proposal.
 func (p ExecuteContractProposal) ProposalRoute() string { return RouterKey }
 
@@ -397,6 +593,15 @@ func (p ExecuteContractProposal) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
+func NewUpdateAdminProposal(
+	title string,
+	description string,
+	newAdmin string,
+	contract string,
+) *UpdateAdminProposal {
+	return &UpdateAdminProposal{title, description, newAdmin, contract}
+}
+
 // ProposalRoute returns the routing key of a parameter change proposal.
 func (p UpdateAdminProposal) ProposalRoute() string { return RouterKey }
 
@@ -431,6 +636,14 @@ func (p UpdateAdminProposal) String() string {
   Contract:    %s
   New Admin:   %s
 `, p.Title, p.Description, p.Contract, p.NewAdmin)
+}
+
+func NewClearAdminProposal(
+	title string,
+	description string,
+	contract string,
+) *ClearAdminProposal {
+	return &ClearAdminProposal{title, description, contract}
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.

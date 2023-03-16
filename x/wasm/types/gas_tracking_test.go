@@ -1,12 +1,13 @@
 package types
 
 import (
+	"testing"
+
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	db "github.com/tendermint/tm-db"
-	"testing"
 )
 
 func newContractGasMeterByRef(gasLimt uint64, gasCalculationFn func(_ uint64, info GasConsumptionInfo) GasConsumptionInfo, contractAddress string, contractOperation uint64) *ContractSDKGasMeter {
