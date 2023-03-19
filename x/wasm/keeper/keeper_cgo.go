@@ -1,5 +1,6 @@
 //go:build cgo
 
+// this is the cgo-enabled version of the keeper.
 package keeper
 
 import (

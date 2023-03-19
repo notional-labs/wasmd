@@ -318,11 +318,11 @@ func (msg MsgIBCSend) Route() string {
 	return RouterKey
 }
 
-func (msg MsgIBCSend) Type() string {
+func (_ MsgIBCSend) Type() string {
 	return "wasm-ibc-send"
 }
 
-func (msg MsgIBCSend) ValidateBasic() error {
+func (_ MsgIBCSend) ValidateBasic() error {
 	return nil
 }
 
@@ -330,19 +330,19 @@ func (msg MsgIBCSend) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
 }
 
-func (msg MsgIBCSend) GetSigners() []sdk.AccAddress {
+func (_ MsgIBCSend) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
-func (msg MsgIBCCloseChannel) Route() string {
+func (_ MsgIBCCloseChannel) Route() string {
 	return RouterKey
 }
 
-func (msg MsgIBCCloseChannel) Type() string {
+func (_ MsgIBCCloseChannel) Type() string {
 	return "wasm-ibc-close"
 }
 
-func (msg MsgIBCCloseChannel) ValidateBasic() error {
+func (_ MsgIBCCloseChannel) ValidateBasic() error {
 	return nil
 }
 
@@ -350,20 +350,21 @@ func (msg MsgIBCCloseChannel) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
 }
 
-func (msg MsgIBCCloseChannel) GetSigners() []sdk.AccAddress {
+func (_ MsgIBCCloseChannel) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
 var _ sdk.Msg = &MsgInstantiateContract2{}
 
-func (msg MsgInstantiateContract2) Route() string {
+func (_ MsgInstantiateContract2) Route() string {
 	return RouterKey
 }
 
-func (msg MsgInstantiateContract2) Type() string {
+func (_ MsgInstantiateContract2) Type() string {
 	return "instantiate2"
 }
 
+// ValidateBasic does a simple validation check.
 func (msg MsgInstantiateContract2) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Sender); err != nil {
 		return errorsmod.Wrap(err, "sender")
@@ -395,10 +396,12 @@ func (msg MsgInstantiateContract2) ValidateBasic() error {
 	return nil
 }
 
+// GetSignBytes encodes the message for signing
 func (msg MsgInstantiateContract2) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
 }
 
+// GetSigners defines whose signature is required
 func (msg MsgInstantiateContract2) GetSigners() []sdk.AccAddress {
 	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil { // should never happen as valid basic rejects invalid addresses
@@ -411,7 +414,7 @@ func (msg MsgUpdateInstantiateConfig) Route() string {
 	return RouterKey
 }
 
-func (msg MsgUpdateInstantiateConfig) Type() string {
+func (_ MsgUpdateInstantiateConfig) Type() string {
 	return "update-instantiate-config"
 }
 

@@ -128,9 +128,10 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]sdk.Msg, 
 }
 
 func NoCustomMsg(_ sdk.AccAddress, _ json.RawMessage) ([]sdk.Msg, error) {
-	return nil, sdkerrors.Wrap(types.ErrUnknownMsg, "custom variant not supported")
+	return nil, errorsmod.Wrap(types.ErrUnknownMsg, "custom variant not supported")
 }
 
+// EncodeDistributionMsg encodes a wasm distribution message to the corresponding sdk message.
 func EncodeDistributionMsg(sender sdk.AccAddress, msg *wasmvmtypes.DistributionMsg) ([]sdk.Msg, error) {
 	switch {
 	case msg.SetWithdrawAddress != nil:
@@ -150,6 +151,7 @@ func EncodeDistributionMsg(sender sdk.AccAddress, msg *wasmvmtypes.DistributionM
 	}
 }
 
+// EncodeStakingMsg encodes a wasm staking message to the corresponding sdk message.
 func EncodeStakingMsg(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]sdk.Msg, error) {
 	switch {
 	case msg.Delegate != nil:
@@ -192,6 +194,7 @@ func EncodeStakingMsg(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]sdk
 	}
 }
 
+// EncodeStargateMsg encodes a wasm stargate message to the corresponding sdk message.
 func EncodeStargateMsg(unpacker codectypes.AnyUnpacker) StargateEncoder {
 	return func(sender sdk.AccAddress, msg *wasmvmtypes.StargateMsg) ([]sdk.Msg, error) {
 		codecAny := codectypes.Any{
@@ -200,7 +203,7 @@ func EncodeStargateMsg(unpacker codectypes.AnyUnpacker) StargateEncoder {
 		}
 		var sdkMsg sdk.Msg
 		if err := unpacker.UnpackAny(&codecAny, &sdkMsg); err != nil {
-			return nil, sdkerrors.Wrap(types.ErrInvalidMsg, fmt.Sprintf("Cannot unpack proto message with type URL: %s", msg.TypeURL))
+			return nil, errorsmod.Wrap(types.ErrInvalidMsg, fmt.Sprintf("Cannot unpack proto message with type URL: %s", msg.TypeURL))
 		}
 		if err := codectypes.UnpackInterfaces(sdkMsg, unpacker); err != nil {
 			return nil, errorsmod.Wrap(types.ErrInvalidMsg, fmt.Sprintf("UnpackInterfaces inside msg: %s", err))
@@ -209,6 +212,7 @@ func EncodeStargateMsg(unpacker codectypes.AnyUnpacker) StargateEncoder {
 	}
 }
 
+// EncodeWasmMsg encodes a wasm message to the corresponding sdk message.
 func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]sdk.Msg, error) {
 	switch {
 	case msg.Execute != nil:
@@ -283,6 +287,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]sdk.Msg, 
 	}
 }
 
+// EncodeIBCMsg encodes a wasm IBC message to the corresponding sdk message.
 func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context, sender sdk.AccAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]sdk.Msg, error) {
 	return func(ctx sdk.Context, sender sdk.AccAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]sdk.Msg, error) {
 		switch {
@@ -313,6 +318,7 @@ func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context
 	}
 }
 
+// EncodeGovMsg encodes a wasm gov message to the corresponding sdk message.
 func EncodeGovMsg(sender sdk.AccAddress, msg *wasmvmtypes.GovMsg) ([]sdk.Msg, error) {
 	switch {
 	case msg.Vote != nil:

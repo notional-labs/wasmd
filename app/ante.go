@@ -23,6 +23,7 @@ type HandlerOptions struct {
 	TXCounterStoreKey storetypes.StoreKey
 }
 
+// NewAnteHandler returns an AnteHandler
 func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 	if options.AccountKeeper == nil {
 		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, "account keeper is required for AnteHandler")
