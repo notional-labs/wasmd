@@ -4,6 +4,13 @@
 
 [Full Changelog](https://github.com/CosmWasm/wasmd/compare/v0.30.0...HEAD)
 
+## [v0.31.x-sdk-v0.46.11-tf-2](https://github.com/notional-labs/wasmd/tree/release/v0.31.x-sdk-v0.46.x) (2023-04-17)
+
+[Full Changelog](https://github.com/notional-labs/wasmd/compare/release/v0.31.x-sdk-v0.46.x...provenance-io:wasmd:notional-labs-46.11)
+
+- Introduced security patch from [CWA-2023-001](https://github.com/CosmWasm/advisories/blob/main/CWAs/CWA-2023-001.md)
+- Introduced partial changes from [Cosmwasm](https://github.com/CosmWasm/wasmd/pull/1269) to fix transactions ran by proposals.
+
 ## [v0.30.0](https://github.com/CosmWasm/wasmd/tree/v0.30.0) (2022-12-02)
 
 [Full Changelog](https://github.com/CosmWasm/wasmd/compare/v0.29.2...v0.30.0)
