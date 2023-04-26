@@ -147,6 +147,7 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/tecbot/gorocksdb v0.0.0-20191217155057-f0fad39f321c // indirect
 	github.com/tendermint/go-amino v0.16.0 // indirect
+	github.com/tetratelabs/wazero v1.0.3
 	github.com/tidwall/btree v1.6.0 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/zondax/hid v0.9.1 // indirect
