@@ -150,7 +150,7 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte,
 		ctx.GasMeter().ConsumeGas(k.gasRegister.UncompressCosts(len(wasmCode)), "Uncompress gzip bytecode")
 		wasmCode, err = ioutils.Uncompress(wasmCode, uint64(types.MaxWasmSize))
 		if err != nil {
-			return 0, checksum, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
+			return 0, checksum, types.ErrCreateFailed.Wrap(sdkerrors.Wrap(err, "uncompress wasm archive").Error())
 		}
 	}
 
@@ -192,7 +192,7 @@ func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeIn
 		var err error
 		wasmCode, err = ioutils.Uncompress(wasmCode, uint64(types.MaxWasmSize))
 		if err != nil {
-			return sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
+			return types.ErrCreateFailed.Wrap(sdkerrors.Wrap(err, "uncompress wasm archive").Error())
 		}
 	}
 	newCodeHash, err := k.wasmVM.Create(wasmCode)
@@ -233,7 +233,7 @@ func (k Keeper) instantiate(
 
 	codeInfo := k.GetCodeInfo(ctx, codeID)
 	if codeInfo == nil {
-		return nil, nil, sdkerrors.Wrap(types.ErrNotFound, "code")
+		return nil, nil, types.ErrNoSuchCodeFn(codeID).Wrapf("code id %d", codeID)
 	}
 	if !authPolicy.CanInstantiateContract(codeInfo.InstantiateConfig, creator) {
 		return nil, nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not instantiate")
@@ -290,14 +290,14 @@ func (k Keeper) instantiate(
 	// create prefixed data store
 	// 0x03 | BuildContractAddressClassic (sdk.AccAddress)
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
-	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
+	vmStore := types.NewStoreAdapter(prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey))
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 
 	// instantiate wasm contract
 	gas := k.runtimeGasForContract(ctx)
-	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
+	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, vmStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrInstantiateFailed, err.Error())
@@ -429,9 +429,9 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	querier := k.newQueryHandler(ctx, contractAddress)
 
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
-	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
+	vmStore := types.NewStoreAdapter(prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey))
 	gas := k.runtimeGasForContract(ctx)
-	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, &prefixStore, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
+	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, vmStore, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrMigrationFailed, err.Error())
@@ -706,25 +706,28 @@ func (k Keeper) QueryRaw(ctx sdk.Context, contractAddress sdk.AccAddress, key []
 	return prefixStore.Get(key)
 }
 
-func (k Keeper) contractInstance(ctx sdk.Context, contractAddress sdk.AccAddress) (types.ContractInfo, types.CodeInfo, prefix.Store, error) {
+// internal helper function
+func (k Keeper) contractInstance(ctx sdk.Context, contractAddress sdk.AccAddress) (types.ContractInfo, types.CodeInfo, wasmvm.KVStore, error) {
 	store := ctx.KVStore(k.storeKey)
 
 	contractBz := store.Get(types.GetContractAddressKey(contractAddress))
 	if contractBz == nil {
-		return types.ContractInfo{}, types.CodeInfo{}, prefix.Store{}, sdkerrors.Wrap(types.ErrNotFound, "contract")
+		return types.ContractInfo{}, types.CodeInfo{}, nil, types.ErrNoSuchContractFn(contractAddress.String()).
+			Wrapf("address %s", contractAddress.String())
 	}
 	var contractInfo types.ContractInfo
 	k.cdc.MustUnmarshal(contractBz, &contractInfo)
 
 	codeInfoBz := store.Get(types.GetCodeKey(contractInfo.CodeID))
 	if codeInfoBz == nil {
-		return contractInfo, types.CodeInfo{}, prefix.Store{}, sdkerrors.Wrap(types.ErrNotFound, "code info")
+		return contractInfo, types.CodeInfo{}, nil, types.ErrNoSuchCodeFn(contractInfo.CodeID).
+			Wrapf("code id %d", contractInfo.CodeID)
 	}
 	var codeInfo types.CodeInfo
 	k.cdc.MustUnmarshal(codeInfoBz, &codeInfo)
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
-	return contractInfo, codeInfo, prefixStore, nil
+	return contractInfo, codeInfo, types.NewStoreAdapter(prefixStore), nil
 }
 
 func (k Keeper) GetContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress) *types.ContractInfo {
@@ -840,7 +843,7 @@ func (k Keeper) GetByteCode(ctx sdk.Context, codeID uint64) ([]byte, error) {
 func (k Keeper) pinCode(ctx sdk.Context, codeID uint64) error {
 	codeInfo := k.GetCodeInfo(ctx, codeID)
 	if codeInfo == nil {
-		return sdkerrors.Wrap(types.ErrNotFound, "code info")
+		return types.ErrNoSuchCodeFn(codeID).Wrapf("code id %d", codeID)
 	}
 
 	if err := k.wasmVM.Pin(codeInfo.CodeHash); err != nil {
@@ -861,7 +864,7 @@ func (k Keeper) pinCode(ctx sdk.Context, codeID uint64) error {
 func (k Keeper) unpinCode(ctx sdk.Context, codeID uint64) error {
 	codeInfo := k.GetCodeInfo(ctx, codeID)
 	if codeInfo == nil {
-		return sdkerrors.Wrap(types.ErrNotFound, "code info")
+		return types.ErrNoSuchCodeFn(codeID).Wrapf("code id %d", codeID)
 	}
 	if err := k.wasmVM.Unpin(codeInfo.CodeHash); err != nil {
 		return sdkerrors.Wrap(types.ErrUnpinContractFailed, err.Error())
@@ -890,9 +893,10 @@ func (k Keeper) InitializePinnedCodes(ctx sdk.Context) error {
 	defer iter.Close()
 
 	for ; iter.Valid(); iter.Next() {
-		codeInfo := k.GetCodeInfo(ctx, types.ParsePinnedCodeIndex(iter.Key()))
+		codeID := types.ParsePinnedCodeIndex(iter.Key())
+		codeInfo := k.GetCodeInfo(ctx, codeID)
 		if codeInfo == nil {
-			return sdkerrors.Wrap(types.ErrNotFound, "code info")
+			return types.ErrNoSuchCodeFn(codeID).Wrapf("code id %d", codeID)
 		}
 		if err := k.wasmVM.Pin(codeInfo.CodeHash); err != nil {
 			return sdkerrors.Wrap(types.ErrPinContractFailed, err.Error())
@@ -905,7 +909,8 @@ func (k Keeper) InitializePinnedCodes(ctx sdk.Context) error {
 func (k Keeper) setContractInfoExtension(ctx sdk.Context, contractAddr sdk.AccAddress, ext types.ContractInfoExtension) error {
 	info := k.GetContractInfo(ctx, contractAddr)
 	if info == nil {
-		return sdkerrors.Wrap(types.ErrNotFound, "contract info")
+		return types.ErrNoSuchContractFn(contractAddr.String()).
+			Wrapf("address %s", contractAddr.String())
 	}
 	if err := info.SetExtension(ext); err != nil {
 		return err
@@ -918,7 +923,7 @@ func (k Keeper) setContractInfoExtension(ctx sdk.Context, contractAddr sdk.AccAd
 func (k Keeper) setAccessConfig(ctx sdk.Context, codeID uint64, caller sdk.AccAddress, newConfig types.AccessConfig, authz AuthorizationPolicy) error {
 	info := k.GetCodeInfo(ctx, codeID)
 	if info == nil {
-		return sdkerrors.Wrap(types.ErrNotFound, "code info")
+		return types.ErrNoSuchCodeFn(codeID).Wrapf("code id %d", codeID)
 	}
 	isSubset := newConfig.Permission.IsSubset(k.getInstantiateAccessConfig(ctx))
 	if !authz.CanModifyCodeAccessConfig(sdk.MustAccAddressFromBech32(info.Creator), caller, isSubset) {
@@ -1026,7 +1031,7 @@ func (k Keeper) importAutoIncrementID(ctx sdk.Context, lastIDKey []byte, val uin
 
 func (k Keeper) importContract(ctx sdk.Context, contractAddr sdk.AccAddress, c *types.ContractInfo, state []types.Model, entries []types.ContractCodeHistoryEntry) error {
 	if !k.containsCodeInfo(ctx, c.CodeID) {
-		return sdkerrors.Wrapf(types.ErrNotFound, "code id: %d", c.CodeID)
+		return types.ErrNoSuchCodeFn(c.CodeID).Wrapf("code id %d", c.CodeID)
 	}
 	if k.HasContractInfo(ctx, contractAddr) {
 		return sdkerrors.Wrapf(types.ErrDuplicate, "contract: %s", contractAddr)

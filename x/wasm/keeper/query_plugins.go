@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
 
 	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
 
@@ -543,6 +544,25 @@ func ConvertSdkCoinToWasmCoin(coin sdk.Coin) wasmvmtypes.Coin {
 		Denom:  coin.Denom,
 		Amount: coin.Amount.String(),
 	}
+}
+
+// ConvertProtoToJSONMarshal  unmarshals the given bytes into a proto message and then marshals it to json.
+// This is done so that clients calling stargate queries do not need to define their own proto unmarshalers,
+// being able to use response directly by json marshalling, which is supported in cosmwasm.
+func ConvertProtoToJSONMarshal(cdc codec.Codec, protoResponse codec.ProtoMarshaler, bz []byte) ([]byte, error) {
+	// unmarshal binary into stargate response data structure
+	err := cdc.Unmarshal(bz, protoResponse)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "to proto")
+	}
+
+	bz, err = cdc.MarshalJSON(protoResponse)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "to json")
+	}
+
+	protoResponse.Reset()
+	return bz, nil
 }
 
 var _ WasmVMQueryHandler = WasmVMQueryHandlerFn(nil)

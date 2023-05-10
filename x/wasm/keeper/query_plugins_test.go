@@ -1,9 +1,13 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/store"
 
 	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
@@ -12,9 +16,11 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/CosmWasm/wasmd/app"
 	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
@@ -619,4 +625,155 @@ func (m bankKeeperMock) GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk
 		panic("not expected to be called")
 	}
 	return m.GetAllBalancesFn(ctx, addr)
+}
+
+func TestConvertProtoToJSONMarshal(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		queryPath             string
+		protoResponseStruct   codec.ProtoMarshaler
+		originalResponse      string
+		expectedProtoResponse codec.ProtoMarshaler
+		expectedError         bool
+	}{
+		{
+			name:                "successful conversion from proto response to json marshalled response",
+			queryPath:           "/cosmos.bank.v1beta1.Query/AllBalances",
+			originalResponse:    "0a090a036261721202333012050a03666f6f",
+			protoResponseStruct: &banktypes.QueryAllBalancesResponse{},
+			expectedProtoResponse: &banktypes.QueryAllBalancesResponse{
+				Balances: sdk.NewCoins(sdk.NewCoin("bar", sdk.NewInt(30))),
+				Pagination: &query.PageResponse{
+					NextKey: []byte("foo"),
+				},
+			},
+		},
+		{
+			name:                "invalid proto response struct",
+			queryPath:           "/cosmos.bank.v1beta1.Query/AllBalances",
+			originalResponse:    "0a090a036261721202333012050a03666f6f",
+			protoResponseStruct: &authtypes.QueryAccountResponse{},
+			expectedError:       true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Case %s", tc.name), func(t *testing.T) {
+			originalVersionBz, err := hex.DecodeString(tc.originalResponse)
+			require.NoError(t, err)
+			appCodec := app.MakeEncodingConfig().Marshaler
+
+			jsonMarshalledResponse, err := keeper.ConvertProtoToJSONMarshal(appCodec, tc.protoResponseStruct, originalVersionBz)
+			if tc.expectedError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// check response by json marshalling proto response into json response manually
+			jsonMarshalExpectedResponse, err := appCodec.MarshalJSON(tc.expectedProtoResponse)
+			require.NoError(t, err)
+			require.JSONEq(t, string(jsonMarshalledResponse), string(jsonMarshalExpectedResponse))
+		})
+	}
+}
+
+func TestResetProtoMarshalerAfterJsonMarshal(t *testing.T) {
+	appCodec := app.MakeEncodingConfig().Marshaler
+
+	protoMarshaler := &banktypes.QueryAllBalancesResponse{}
+	expected := appCodec.MustMarshalJSON(&banktypes.QueryAllBalancesResponse{
+		Balances: sdk.NewCoins(sdk.NewCoin("bar", sdk.NewInt(30))),
+		Pagination: &query.PageResponse{
+			NextKey: []byte("foo"),
+		},
+	})
+
+	bz, err := hex.DecodeString("0a090a036261721202333012050a03666f6f")
+	require.NoError(t, err)
+
+	// first marshal
+	response, err := keeper.ConvertProtoToJSONMarshal(appCodec, protoMarshaler, bz)
+	require.NoError(t, err)
+	require.Equal(t, expected, response)
+
+	// second marshal
+	response, err = keeper.ConvertProtoToJSONMarshal(appCodec, protoMarshaler, bz)
+	require.NoError(t, err)
+	require.Equal(t, expected, response)
+}
+
+// TestDeterministicJsonMarshal tests that we get deterministic JSON marshalled response upon
+// proto struct update in the state machine.
+func TestDeterministicJsonMarshal(t *testing.T) {
+	testCases := []struct {
+		name                string
+		originalResponse    string
+		updatedResponse     string
+		queryPath           string
+		responseProtoStruct codec.ProtoMarshaler
+		expectedProto       func() codec.ProtoMarshaler
+	}{
+		/**
+		   *
+		   * Origin Response
+		   * 0a530a202f636f736d6f732e617574682e763162657461312e426173654163636f756e74122f0a2d636f736d6f7331346c3268686a6e676c3939367772703935673867646a6871653038326375367a7732706c686b
+		   *
+		   * Updated Response
+		   * 0a530a202f636f736d6f732e617574682e763162657461312e426173654163636f756e74122f0a2d636f736d6f7331646a783375676866736d6b6135386676673076616a6e6533766c72776b7a6a346e6377747271122d636f736d6f7331646a783375676866736d6b6135386676673076616a6e6533766c72776b7a6a346e6377747271
+		  // Origin proto
+		  message QueryAccountResponse {
+		    // account defines the account of the corresponding address.
+		    google.protobuf.Any account = 1 [(cosmos_proto.accepts_interface) = "AccountI"];
+		  }
+		  // Updated proto
+		  message QueryAccountResponse {
+		    // account defines the account of the corresponding address.
+		    google.protobuf.Any account = 1 [(cosmos_proto.accepts_interface) = "AccountI"];
+		    // address is the address to query for.
+		  	string address = 2;
+		  }
+		*/
+		{
+			"Query Account",
+			"0a530a202f636f736d6f732e617574682e763162657461312e426173654163636f756e74122f0a2d636f736d6f733166387578756c746e3873717a687a6e72737a3371373778776171756867727367366a79766679",
+			"0a530a202f636f736d6f732e617574682e763162657461312e426173654163636f756e74122f0a2d636f736d6f733166387578756c746e3873717a687a6e72737a3371373778776171756867727367366a79766679122d636f736d6f733166387578756c746e3873717a687a6e72737a3371373778776171756867727367366a79766679",
+			"/cosmos.auth.v1beta1.Query/Account",
+			&authtypes.QueryAccountResponse{},
+			func() codec.ProtoMarshaler {
+				account := authtypes.BaseAccount{
+					Address: "cosmos1f8uxultn8sqzhznrsz3q77xwaquhgrsg6jyvfy",
+				}
+				accountResponse, err := codectypes.NewAnyWithValue(&account)
+				require.NoError(t, err)
+				return &authtypes.QueryAccountResponse{
+					Account: accountResponse,
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Case %s", tc.name), func(t *testing.T) {
+			appCodec := app.MakeEncodingConfig().Marshaler
+
+			originVersionBz, err := hex.DecodeString(tc.originalResponse)
+			require.NoError(t, err)
+			jsonMarshalledOriginalBz, err := keeper.ConvertProtoToJSONMarshal(appCodec, tc.responseProtoStruct, originVersionBz)
+			require.NoError(t, err)
+
+			newVersionBz, err := hex.DecodeString(tc.updatedResponse)
+			require.NoError(t, err)
+			jsonMarshalledUpdatedBz, err := keeper.ConvertProtoToJSONMarshal(appCodec, tc.responseProtoStruct, newVersionBz)
+			require.NoError(t, err)
+
+			// json marshalled bytes should be the same since we use the same proto struct for unmarshalling
+			require.Equal(t, jsonMarshalledOriginalBz, jsonMarshalledUpdatedBz)
+
+			// raw build also make same result
+			jsonMarshalExpectedResponse, err := appCodec.MarshalJSON(tc.expectedProto())
+			require.NoError(t, err)
+			require.Equal(t, jsonMarshalledUpdatedBz, jsonMarshalExpectedResponse)
+		})
+	}
 }
