@@ -63,7 +63,7 @@ func newUnmanagedVector(data []byte) C.UnmanagedVector {
 
 func copyAndDestroyUnmanagedVector(v C.UnmanagedVector) []byte {
 	var out []byte
-	if v.is_none { // we can't convert this to a switch statement.  There is a complaint about mismatched types. https://hackmd.io/18jrYUmQTdaEKP4J9q1Klg#
+	if v.is_none { //nolint:gocritic // we can't convert this to a switch statement.  There is a complaint about mismatched types. https://hackmd.io/18jrYUmQTdaEKP4J9q1Klg#
 		out = nil
 	} else if v.cap == cusize(0) {
 		// There is no allocation we can copy

@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +23,7 @@ const (
 )
 
 func TestInitAndReleaseCache(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "wasmvm-testing")
+	tmpdir, err := os.MkdirTemp("", "wasmvm-testing")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpdir)
 
@@ -36,7 +35,7 @@ func TestInitAndReleaseCache(t *testing.T) {
 // wasmd expects us to create the base directory
 // https://github.com/CosmWasm/wasmd/blob/v0.30.0/x/wasm/keeper/keeper.go#L128
 func TestInitCacheWorksForNonExistentDir(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "wasmvm-testing")
+	tmpdir, err := os.MkdirTemp("", "wasmvm-testing")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpdir)
 
@@ -56,7 +55,7 @@ func TestInitCacheErrorsForBrokenDir(t *testing.T) {
 }
 
 func TestInitCacheEmptyCapabilities(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "wasmvm-testing")
+	tmpdir, err := os.MkdirTemp("", "wasmvm-testing")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpdir)
 	cache, err := InitCache(tmpdir, "", TESTING_CACHE_SIZE, TESTING_MEMORY_LIMIT)
@@ -845,7 +844,7 @@ func TestReplyAndQuery(t *testing.T) {
 	require.Equal(t, events, val.Events)
 }
 
-func requireOkResponse(t *testing.T, res []byte, expectedMsgs int) {
+func requireOkResponse(t *testing.T, res []byte, expectedMsgs int) { //nolint:unparam // expectedMsgs is always zero, but let's not remove it since it might come in handy later.
 	var result types.ContractResult
 	err := json.Unmarshal(res, &result)
 	require.NoError(t, err)

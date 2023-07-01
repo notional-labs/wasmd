@@ -289,7 +289,7 @@ func TestAnalyzeCode(t *testing.T) {
 	report, err := vm.AnalyzeCode(checksum)
 	require.NoError(t, err)
 	require.False(t, report.HasIBCEntryPoints)
-	require.Equal(t, "", report.RequiredFeatures)
+	require.Equal(t, "", report.RequiredFeatures) //nolint:staticcheck // testing deprecated code
 	require.Equal(t, "", report.RequiredCapabilities)
 
 	// Store IBC contract
@@ -301,7 +301,7 @@ func TestAnalyzeCode(t *testing.T) {
 	report2, err := vm.AnalyzeCode(checksum2)
 	require.NoError(t, err)
 	require.True(t, report2.HasIBCEntryPoints)
-	require.Equal(t, "iterator,stargate", report2.RequiredFeatures)
+	require.Equal(t, "iterator,stargate", report2.RequiredFeatures) //nolint:staticcheck // testing deprecated code
 	require.Equal(t, "iterator,stargate", report2.RequiredCapabilities)
 }
 
