@@ -65,7 +65,8 @@ func TestInitCacheEmptyCapabilities(t *testing.T) {
 }
 
 func withCache(t *testing.T) (Cache, func()) {
-	tmpdir := os.TempDir()
+	tmpdir, err := os.MkdirTemp("", "wasmvm-testing")
+	require.NoError(t, err)
 	cache, err := InitCache(tmpdir, TESTING_CAPABILITIES, TESTING_CACHE_SIZE, TESTING_MEMORY_LIMIT)
 	require.NoError(t, err)
 
