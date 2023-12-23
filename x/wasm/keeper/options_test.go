@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	wasmvm "github.com/CosmWasm/wasmvm"
 	"reflect"
 	"testing"
 
@@ -25,6 +26,15 @@ func TestConstructorOptions(t *testing.T) {
 	}{
 		"wasm engine": {
 			srcOpt: WithWasmEngine(&wasmtesting.MockWasmer{}),
+			verify: func(t *testing.T, k Keeper) {
+				assert.IsType(t, &wasmtesting.MockWasmer{}, k.wasmVM)
+			},
+		},
+		"decorate wasmvm": {
+			srcOpt: WithWasmEngineDecorator(func(old types.WasmerEngine) types.WasmerEngine {
+				require.IsType(t, &wasmvm.VM{}, old)
+				return &wasmtesting.MockWasmer{}
+			}),
 			verify: func(t *testing.T, k Keeper) {
 				assert.IsType(t, &wasmtesting.MockWasmer{}, k.wasmVM)
 			},

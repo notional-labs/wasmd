@@ -21,6 +21,20 @@ type WasmerEngine interface {
 	// be instantiated with custom inputs in the future.
 	Create(code wasmvm.WasmCode) (wasmvm.Checksum, error)
 
+	// Create will compile the wasm code, and store the resulting pre-compile
+	// as well as the original code. Both can be referenced later via checksum
+	// This must be done one time for given code, after which it can be
+	// instatitated many times, and each instance called many times.
+	// It does the same as StoreCodeUnchecked plus the static checks.
+	StoreCode(code wasmvm.WasmCode) (wasmvm.Checksum, error)
+
+	// Create will compile the wasm code, and store the resulting pre-compile
+	// as well as the original code. Both can be referenced later via checksum
+	// This must be done one time for given code, after which it can be
+	// instatitated many times, and each instance called many times.
+	// It does the same as StoreCode but without the static checks.
+	StoreCodeUnchecked(code wasmvm.WasmCode) (wasmvm.Checksum, error)
+
 	// AnalyzeCode will statically analyze the code.
 	// Currently just reports if it exposes all IBC entry points.
 	AnalyzeCode(checksum wasmvm.Checksum) (*wasmvmtypes.AnalysisReport, error)

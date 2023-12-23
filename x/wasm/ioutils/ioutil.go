@@ -3,14 +3,15 @@ package ioutils
 import (
 	"bytes"
 	"compress/gzip"
+	errorsmod "cosmossdk.io/errors"
 	"io"
 
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
 // Uncompress expects a valid gzip source to unpack or fails. See IsGzip
-func Uncompress(gzipSrc []byte, limit uint64) ([]byte, error) {
-	if uint64(len(gzipSrc)) > limit {
+func Uncompress(gzipSrc []byte, limit int64) ([]byte, error) {
+	if int64(len(gzipSrc)) > limit {
 		return nil, types.ErrLimit
 	}
 	zr, err := gzip.NewReader(bytes.NewReader(gzipSrc))
@@ -19,7 +20,11 @@ func Uncompress(gzipSrc []byte, limit uint64) ([]byte, error) {
 	}
 	zr.Multistream(false)
 	defer zr.Close()
-	return io.ReadAll(LimitReader(zr, int64(limit)))
+	bz, err := io.ReadAll(LimitReader(zr, limit))
+	if types.ErrLimit.Is(err) {
+		return nil, errorsmod.Wrapf(err, "max %d bytes", limit)
+	}
+	return bz, err
 }
 
 // LimitReader returns a Reader that reads from r
