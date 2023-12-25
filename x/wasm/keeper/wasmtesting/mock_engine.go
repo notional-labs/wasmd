@@ -197,6 +197,10 @@ func SelfCallingInstMockWasmer(executeCalled *bool) *MockWasmer {
 			anyCodeID := bytes.Repeat([]byte{0x1}, 32)
 			return anyCodeID, nil
 		},
+		StoreCodeFn: func(code wasmvm.WasmCode) (wasmvm.Checksum, error) {
+			anyCodeID := bytes.Repeat([]byte{0x1}, 32)
+			return anyCodeID, nil
+		},
 		InstantiateFn: func(codeID wasmvm.Checksum, env wasmvmtypes.Env, info wasmvmtypes.MessageInfo, initMsg []byte, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.Response, uint64, error) {
 			return &wasmvmtypes.Response{
 				Messages: []wasmvmtypes.SubMsg{

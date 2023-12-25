@@ -191,12 +191,12 @@ func (k Keeper) storeCodeInfo(ctx sdk.Context, codeID uint64, codeInfo types.Cod
 func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeInfo, wasmCode []byte) error {
 	if ioutils.IsGzip(wasmCode) {
 		var err error
-		wasmCode, err = ioutils.Uncompress(wasmCode, int64(types.MaxWasmSize))
+		wasmCode, err = ioutils.Uncompress(wasmCode, math.MaxInt64)
 		if err != nil {
 			return errorsmod.Wrap(types.ErrCreateFailed, err.Error())
 		}
 	}
-	newCodeHash, err := k.wasmVM.Create(wasmCode)
+	newCodeHash, err := k.wasmVM.StoreCodeUnchecked(wasmCode)
 	if err != nil {
 		return errorsmod.Wrap(types.ErrCreateFailed, err.Error())
 	}
@@ -977,7 +977,7 @@ func (k Keeper) runtimeGasForContract(ctx sdk.Context) uint64 {
 	if meter.IsOutOfGas() {
 		return 0
 	}
-	if meter.Limit() == math.MaxUint64 { // infinite gas meter with limit=math.MaxUint64 and not out of gas
+	if meter.Limit() == math.MaxUint64 { // infinite gas meter with limit=0 and not out of gas
 		return math.MaxUint64
 	}
 
