@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -410,4 +411,26 @@ func GenesisStateWithValSet(
 	genesisState[banktypes.ModuleName] = codec.MustMarshalJSON(bankGenesis)
 	println(string(genesisState[banktypes.ModuleName]))
 	return genesisState, nil
+}
+
+func FundAccount(bankKeeper bankkeeper.Keeper, ctx sdk.Context, addr sdk.AccAddress, amounts sdk.Coins) error {
+	if err := bankKeeper.MintCoins(ctx, minttypes.ModuleName, amounts); err != nil {
+		return err
+	}
+
+	return bankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, addr, amounts)
+}
+
+// FundModuleAccount is a utility function that funds a module account by
+// minting and sending the coins to the address. This should be used for testing
+// purposes only!
+//
+// Instead of using the mint module account, which has the
+// permission of minting, create a "faucet" account. (@fdymylja)
+func FundModuleAccount(bankKeeper bankkeeper.Keeper, ctx sdk.Context, recipientMod string, amounts sdk.Coins) error {
+	if err := bankKeeper.MintCoins(ctx, minttypes.ModuleName, amounts); err != nil {
+		return err
+	}
+
+	return bankKeeper.SendCoinsFromModuleToModule(ctx, minttypes.ModuleName, recipientMod, amounts)
 }
