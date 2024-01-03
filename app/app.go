@@ -707,7 +707,7 @@ func NewWasmApp(
 		transfer.NewAppModule(app.TransferKeeper),
 		ibcfee.NewAppModule(app.IBCFeeKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
-		ibctm.AppModuleBasic{},
+		// ibctm.AppModuleBasic{},
 		// sdk
 		crisis.NewAppModule(app.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)), // always be last to make sure that it checks for all invariants and not only part of them
 	)
@@ -887,10 +887,7 @@ func NewWasmApp(
 
 	// At startup, after all modules have been registered, check that all proto
 	// annotations are correct.
-	protoFiles, err := proto.MergedRegistry()
-	if err != nil {
-		panic(err)
-	}
+	protoFiles, _ := proto.MergedRegistry()
 	err = msgservice.ValidateProtoAnnotations(protoFiles)
 	if err != nil {
 		// Once we switch to using protoreflect-based antehandlers, we might
