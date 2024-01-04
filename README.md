@@ -22,6 +22,7 @@ Follow these steps to set up the Wasmd chain:
 
 ```code=
 git clone https://github.com/notional-labs/wasmd.git
+cd wasmd
 git checkout v0.50.0-notional
 go mod tidy
 make install
