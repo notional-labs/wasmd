@@ -10,4 +10,4 @@ echo $DA_BLOCK_HEIGHT
 # this is for Arabica, if using another network, change the network name
 export AUTH_TOKEN=$(celestia light auth write --p2p.network mocha)
 # start the chain
-wasmd start --rollkit.aggregator true --rollkit.da_address http://localhost:26658/tcp --rollkit.da_start_height $DA_BLOCK_HEIGHT --rollkit.auth_token $AUTH_TOKEN --rollkit.block_time 5s
+wasmd start --rollkit.aggregator true --rollkit.da_address 127.0.0.1:26650 --rollkit.da_start_height $DA_BLOCK_HEIGHT --rollkit.block_time 1s
