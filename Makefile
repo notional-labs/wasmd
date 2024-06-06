@@ -199,8 +199,16 @@ proto-lint:
 proto-check-breaking:
 	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=main
 
+test-wasm:
+	-pkill wasmd > /dev/null 2>&1
+	rm -rf mytestnet > /dev/null 2>&1
+	./testnode.sh
+	echo "Running increment script..."
+	./scripts/increment.sh
+
 .PHONY: all install install-debug \
 	go-mod-cache draw-deps clean build format \
 	test test-all test-build test-cover test-unit test-race \
 	test-sim-import-export build-windows-client \
-	test-system
+	test-system \ test-wasm
+

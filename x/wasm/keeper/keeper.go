@@ -808,6 +808,8 @@ func (k Keeper) HasContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress)
 // storeContractInfo persists the ContractInfo. No secondary index updated here.
 func (k Keeper) storeContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress, contract *types.ContractInfo) {
 	store := ctx.KVStore(k.storeKey)
+	fmt.Println("DEBUG: store key: ", k.storeKey)
+	fmt.Println("DEBUG: contract store prefix in hex: ", fmt.Sprintf("%x", types.GetContractAddressKey(contractAddress)))
 	store.Set(types.GetContractAddressKey(contractAddress), k.cdc.MustMarshal(contract))
 }
 
