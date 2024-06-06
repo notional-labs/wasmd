@@ -725,7 +725,7 @@ func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []b
 		return nil, err
 	}
 
-	// this code debug value
+	// this code get value from contract store
 	counterPrefix := append([]byte{0x00, 0x05}, []byte("state")...)
 	myKeyPrefix := append(counterPrefix, []byte("wasm1hj5fveer5cjtn4wd6wstzugjfdxzl0xpvsr89g")...)
 	value := prefixStore.Get(myKeyPrefix)
