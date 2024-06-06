@@ -40,8 +40,7 @@ update_test_genesis () {
 }
 
 $BINARY init --chain-id $CHAIN_ID moniker --home $HOME_DIR
-
-$BINARY keys add $KEY --keyring-backend $KEYRING --home $HOME_DIR
+echo "decorate bright ozone fork gallery riot bus exhaust worth way bone indoor calm squirrel merry zero scheme cotton until shop any excess stage laundry" | $BINARY keys add $KEY --keyring-backend $KEYRING  --recover --home $HOME_DIR
 
 # Allocate genesis accounts (cosmos formatted addresses)
 $BINARY genesis add-genesis-account $KEY "1000000000000${DENOM}" --keyring-backend $KEYRING --home $HOME_DIR

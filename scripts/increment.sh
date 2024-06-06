@@ -38,6 +38,6 @@ wasmd tx wasm execute $CONTRACT_ADDRESS  '{"increment":{}}' --from $WALLET --hom
 
 sleep 1
 
-#$BINARY query wasm contract-state smart "$CONTRACT_ADDRESS" '{"get_count": {"addr": "'"$WALLET_1_WASM_SENDER"'"}}'
+$BINARY query wasm contract-state smart "$CONTRACT_ADDRESS" '{"get_count": {"addr": "'"$WALLET"'"}}'
 
 

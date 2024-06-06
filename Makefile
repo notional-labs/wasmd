@@ -202,6 +202,7 @@ proto-check-breaking:
 test-wasm:
 	-pkill wasmd > /dev/null 2>&1
 	rm -rf mytestnet > /dev/null 2>&1
+	rm -rf screenlog.0
 	./testnode.sh
 	echo "Running increment script..."
 	./scripts/increment.sh

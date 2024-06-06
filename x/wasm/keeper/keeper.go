@@ -312,6 +312,7 @@ func (k Keeper) instantiate(
 	// create prefixed data store
 	// 0x03 | BuildContractAddressClassic (sdk.AccAddress)
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
+	fmt.Printf("DEBUG: instantiate prefixStoreKey in hex: %x\n", prefixStoreKey)
 	vmStore := types.NewStoreAdapter(prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey))
 
 	// prepare querier
@@ -368,6 +369,8 @@ func (k Keeper) instantiate(
 // Execute executes the contract instance
 func (k Keeper) execute(ctx sdk.Context, contractAddress, caller sdk.AccAddress, msg []byte, coins sdk.Coins) ([]byte, error) {
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "execute")
+	fmt.Println("DEBUG: execute function store: ")
+
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddress)
 	if err != nil {
 		return nil, err
@@ -708,6 +711,7 @@ func (k Keeper) getLastContractHistoryEntry(ctx sdk.Context, contractAddr sdk.Ac
 
 // QuerySmart queries the smart contract itself.
 func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []byte) ([]byte, error) {
+	fmt.Println("DEBUG: QuerySmart")
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "query-smart")
 
 	// checks and increase query stack size
@@ -720,6 +724,13 @@ func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []b
 	if err != nil {
 		return nil, err
 	}
+
+	// this code debug value
+	counterPrefix := append([]byte{0x00, 0x05}, []byte("state")...)
+	myKeyPrefix := append(counterPrefix, []byte("wasm1hj5fveer5cjtn4wd6wstzugjfdxzl0xpvsr89g")...)
+	value := prefixStore.Get(myKeyPrefix)
+	fmt.Println("DEBUG: value: ", value)
+	// This code debug value
 
 	smartQuerySetupCosts := k.gasRegister.InstantiateContractCosts(k.IsPinnedCode(ctx, contractInfo.CodeID), len(req))
 	ctx.GasMeter().ConsumeGas(smartQuerySetupCosts, "Loading CosmWasm module: query")
@@ -756,6 +767,7 @@ func checkAndIncreaseQueryStackSize(ctx sdk.Context, maxQueryStackSize uint32) (
 
 // QueryRaw returns the contract's state for give key. Returns `nil` when key is `nil`.
 func (k Keeper) QueryRaw(ctx sdk.Context, contractAddress sdk.AccAddress, key []byte) []byte {
+	fmt.Println("DEBUG: QueryRaw")
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "query-raw")
 	if key == nil {
 		return nil
@@ -785,6 +797,7 @@ func (k Keeper) contractInstance(ctx sdk.Context, contractAddress sdk.AccAddress
 	var codeInfo types.CodeInfo
 	k.cdc.MustUnmarshal(codeInfoBz, &codeInfo)
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
+	fmt.Printf("DEBUG: prefixStoreKey in hex: %x\n", prefixStoreKey)
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
 	return contractInfo, codeInfo, types.NewStoreAdapter(prefixStore), nil
 }

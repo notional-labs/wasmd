@@ -4,7 +4,7 @@
   "method": "abci_query",
   "params": {
     "path": "/store/wasm/key",
-    "data": "021ab20506d0f843d11b6ab41f413a34df904b4b698b96e5da3aa903a06b01c1c40000000573746174651b19f123987e541388360466451c2c4d24d9d2fa",
+    "data": "0339740e2b7ff62d2d7a9cb1a5731cd37c061ae7d8699fbd0ee5a9405638e7bb4600057374617465866403ba6a011cf65d16891ed8447aef93087e9e",
     "prove": false
   }
 }
